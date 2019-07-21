@@ -1,0 +1,13 @@
+zsh-users/zsh-completions
+zsh-users/zsh-autosuggestions
+zsh-users/zsh-syntax-highlighting
+zsh-users/zsh-history-substring-search
+mafredri/zsh-async
+robbyrussell/oh-my-zsh path:plugins/gitfast
+robbyrussell/oh-my-zsh path:plugins/ssh-agent
+robbyrussell/oh-my-zsh path:plugins/docker
+robbyrussell/oh-my-zsh path:plugins/mvn
+robbyrussell/oh-my-zsh path:plugins/sudo
+robbyrussell/oh-my-zsh path:plugins/colored-man-pages
+
+chriskempson/base16-shell
