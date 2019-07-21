@@ -4,6 +4,12 @@
  zsh        > oh-my-zsh plugins and themes
  ```
 
+# Dependencies
+* zsh
+* https://github.com/VundleVim/Vundle.vim
+* tmux
+* WakaTime
+
 # Usage
 I use [stow](https://www.gnu.org/software/stow/) to manage my dotfiles
 ```

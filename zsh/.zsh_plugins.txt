@@ -3,6 +3,7 @@ zsh-users/zsh-autosuggestions
 zsh-users/zsh-syntax-highlighting
 zsh-users/zsh-history-substring-search
 mafredri/zsh-async
+sobolevn/wakatime-zsh-plugin
 robbyrussell/oh-my-zsh path:plugins/gitfast
 robbyrussell/oh-my-zsh path:plugins/ssh-agent
 robbyrussell/oh-my-zsh path:plugins/docker

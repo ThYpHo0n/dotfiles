@@ -166,7 +166,9 @@ module.exports = {
     "tab:new": "ctrl+t",
     "pane:next": ["ctrl+shift+right", "ctrl+shift+down"],
     "pane:prev": ["ctrl+shift+left", "ctrl+shift+up"],
+    "editor:paste": "ctrl+v",
+    "editor:cut": "ctrl+shift+x",
+    "editor:copy": "ctrl+shift+c",
   },
   opacity: 0.5,
 };
-
