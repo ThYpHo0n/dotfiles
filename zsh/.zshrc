@@ -3,8 +3,6 @@ alias antibody='antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
 [[ ! -f ~/.zsh_plugins.sh ]] && antibody
 source ~/.zsh_plugins.sh
 
-#source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
@@ -37,8 +35,6 @@ COMPLETION_WAITING_DOTS="true"
 # much, much faster.
 DISABLE_UNTRACKED_FILES_DIRTY="true"
 
-zstyle :omz:plugins:ssh-agent agent-forwarding on
-
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
@@ -49,7 +45,6 @@ export LC_ALL=C
 
 export EDITOR='vim'
 
-export SSH_KEY_PATH="~/.ssh/id_rsa"
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -58,16 +53,27 @@ export SSH_KEY_PATH="~/.ssh/id_rsa"
 
 export PATH=$PATH:$HOME/.cargo/bin
 
-# Windows XSrv config
+# WSL or real unix?
 if hash wsl.exe>/dev/null; then
     export $(dbus-launch)
     export LIBGL_ALWAYS_INDIRECT=1
     export WSL_VERSION=$(wsl.exe -l -v | grep -a '[*]' | sed 's/[^0-9]*//g')
     export WSL_HOST=$(tail -1 /etc/resolv.conf | cut -d' ' -f2)
     export DISPLAY=$WSL_HOST:0
+    # SSH
+    eval $(/mnt/c/weasel-pageant/weasel-pageant -r)
 else
     export DISPLAY=:0
+    # SSH
+    export SSH_AUTH_SOCK=~/.ssh/ssh-agent.sock
+    ssh-add -l 2>/dev/null >/dev/null
+    if [ $? -ge 2 ]; then
+        ssh-agent -a "$SSH_AUTH_SOCK" >/dev/null
+    fi
+    ssh-add -l | grep -q "$HOME/.ssh/id_rsa" || ssh-add $HOME/.ssh/id_rsa
 fi
+
+export DOCKER_HOST=localhost:2375
 
 # NVM
 export NVM_DIR="$HOME/.nvm"
