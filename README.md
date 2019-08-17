@@ -1,14 +1,15 @@
 # Dotfiles
 ```
+ git        > global git configuration
  hyper.is   > hyper.is terminal settings
  zsh        > oh-my-zsh plugins and themes
  ```
 
 # Dependencies
-* zsh
+* zsh & [oh-my-zsh](https://github.com/robbyrussell/oh-my-zsh)
 * https://github.com/VundleVim/Vundle.vim
-* tmux
-* WakaTime
+* [WakaTime](https://wakatime.com)
+* [Antibody](https://getantibody.github.io/usage/)
 
 # Usage
 I use [stow](https://www.gnu.org/software/stow/) to manage my dotfiles
