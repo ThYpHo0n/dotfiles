@@ -54,7 +54,7 @@ export EDITOR='vim'
 export PATH=$PATH:$HOME/.cargo/bin
 
 # WSL or real unix?
-if hash wsl.exe>/dev/null; then
+if [[ "$(< /proc/sys/kernel/osrelease)" == *Microsoft ]]; then 
     export $(dbus-launch)
     export LIBGL_ALWAYS_INDIRECT=1
     export WSL_VERSION=$(wsl.exe -l -v | grep -a '[*]' | sed 's/[^0-9]*//g')
