@@ -60,6 +60,8 @@ if [[ "$(< /proc/sys/kernel/osrelease)" == *Microsoft ]]; then
     export WSL_VERSION=$(wsl.exe -l -v | grep -a '[*]' | sed 's/[^0-9]*//g')
     export WSL_HOST=$(tail -1 /etc/resolv.conf | cut -d' ' -f2)
     export DISPLAY=$WSL_HOST:0
+    # pip path if using --user 
+    export PATH=$PATH:$HOME/.local/bin
     # SSH
     eval $(/mnt/c/weasel-pageant/weasel-pageant -r)
 else
