@@ -55,7 +55,6 @@ export PATH=$PATH:$HOME/.cargo/bin
 
 # WSL or real unix?
 if [[ "$(< /proc/sys/kernel/osrelease)" == *microsoft* ]]; then 
-    echo "WSL IS HERE" 
     export $(dbus-launch)
     export LIBGL_ALWAYS_INDIRECT=1
     export WSL_VERSION=$(wsl.exe -l -v | grep -a '[*]' | sed 's/[^0-9]*//g')
@@ -66,7 +65,6 @@ if [[ "$(< /proc/sys/kernel/osrelease)" == *microsoft* ]]; then
     # SSH
     eval $(/mnt/c/weasel-pageant/weasel-pageant -r)
 else
-    echo "WSL lol nope"
     export DISPLAY=:0
     export DOCKER_HOST=localhost:2375
     # SSH
