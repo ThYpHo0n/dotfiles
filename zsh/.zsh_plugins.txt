@@ -12,3 +12,4 @@ robbyrussell/oh-my-zsh path:plugins/sudo
 robbyrussell/oh-my-zsh path:plugins/colored-man-pages
 
 chriskempson/base16-shell
+djui/alias-tips
