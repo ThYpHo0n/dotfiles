@@ -42,9 +42,16 @@ export LANG=en_US.UTF-8
 export LC_COLLATE=C
 export LANGUAGE=en_US:en
 export LC_ALL=C
-
 export EDITOR='vim'
 
+# Aliases
+alias g='git'
+alias dc='docker-compose'
+alias d='docker'
+alias less='less -R'
+alias ls='ls --group-directories-first --color=auto'
+alias l='ls -lah'
+alias ll='ls -lh'
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -77,9 +84,10 @@ else
 fi
 
 
-# NVM
+# NVM - Node version manager
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
+# Jabba - Java version manager
 [ -s "$HOME/.jabba/jabba.sh" ] && source "$HOME/.jabba/jabba.sh"
