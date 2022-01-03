@@ -53,26 +53,23 @@ alias ls='ls --group-directories-first --color=auto'
 alias l='ls -lah'
 alias ll='ls -lh'
 
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-
 export PATH=$PATH:$HOME/.cargo/bin
+
+eval $(keychain --eval --quiet id_rsa)
+
+export DISPLAY=:0
 
 # WSL or real unix?
 if [[ "$(< /proc/sys/kernel/osrelease)" == *microsoft* ]]; then 
-    export $(dbus-launch)
-    export LIBGL_ALWAYS_INDIRECT=1
-    export WSL_VERSION=$(wsl.exe -l -v | grep -a '[*]' | sed 's/[^0-9]*//g')
-    export WSL_HOST=$(tail -1 /etc/resolv.conf | cut -d' ' -f2)
-    export DISPLAY=$WSL_HOST:0
+    # Start Docker daemon automatically when logging in if not running.
+    RUNNING=`ps aux | grep dockerd | grep -v grep`
+    if [ -z "$RUNNING" ]; then
+        sudo dockerd > /dev/null 2>&1 &
+	disown
+    fi
     # pip path if using --user 
     export PATH=$PATH:$HOME/.local/bin
-    # SSH
-    eval $(/mnt/c/weasel-pageant/weasel-pageant -r)
 else
-    export DISPLAY=:0
     export DOCKER_HOST=localhost:2375
     # SSH
     export SSH_AUTH_SOCK=~/.ssh/ssh-agent.sock
@@ -91,3 +88,6 @@ export NVM_DIR="$HOME/.nvm"
 
 # Jabba - Java version manager
 [ -s "$HOME/.jabba/jabba.sh" ] && source "$HOME/.jabba/jabba.sh"
+
+# add Pulumi to the PATH
+export PATH=$PATH:$HOME/.pulumi/bin
