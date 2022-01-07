@@ -35,6 +35,8 @@ COMPLETION_WAITING_DOTS="true"
 # much, much faster.
 DISABLE_UNTRACKED_FILES_DIRTY="true"
 
+zstyle :omz:plugins:ssh-agent agent-forwarding on
+
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
@@ -44,50 +46,100 @@ export LANGUAGE=en_US:en
 export LC_ALL=C
 export EDITOR='vim'
 
-# Aliases
+# Set personal aliases, overriding those provided by oh-my-zsh libs,
+# plugins, and themes. Aliases can be placed here, though oh-my-zsh
+# users are encouraged to define aliases within the ZSH_CUSTOM folder.
+# For a full list of active aliases, run `alias`.
 alias g='git'
 alias dc='docker-compose'
 alias d='docker'
 alias less='less -R'
 alias ls='ls --group-directories-first --color=auto'
 alias l='ls -lah'
-alias ll='ls -lh'
+alias ll='ls -lah'
+alias kctx="kubectx"
+alias kns="kubens"
+alias kmode="export PS1='\$(kube_ps1)'\$PS1"
+alias cdw='cd ~/workspace'
 
-export PATH=$PATH:$HOME/.cargo/bin
-
-eval $(keychain --eval --quiet id_rsa)
-
-export DISPLAY=:0
-
-# WSL or real unix?
-if [[ "$(< /proc/sys/kernel/osrelease)" == *microsoft* ]]; then 
-    # Start Docker daemon automatically when logging in if not running.
-    RUNNING=`ps aux | grep dockerd | grep -v grep`
+# WSL context?
+if [[ "$(</proc/sys/kernel/osrelease)" == *microsoft* ]]; then
+    # Start Docker daemon automatically when logging in if not running
+    RUNNING=$(ps aux | grep dockerd | grep -v grep)
     if [ -z "$RUNNING" ]; then
-        sudo dockerd > /dev/null 2>&1 &
-	disown
+        sudo dockerd >/dev/null 2>&1 &
+        disown
     fi
-    # pip path if using --user 
-    export PATH=$PATH:$HOME/.local/bin
-else
-    export DOCKER_HOST=localhost:2375
-    # SSH
-    export SSH_AUTH_SOCK=~/.ssh/ssh-agent.sock
-    ssh-add -l 2>/dev/null >/dev/null
-    if [ $? -ge 2 ]; then
-        ssh-agent -a "$SSH_AUTH_SOCK" >/dev/null
-    fi
-    ssh-add -l | grep -q "$HOME/.ssh/id_rsa" || ssh-add $HOME/.ssh/id_rsa
 fi
 
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    # Linux specific stuff goes here
+    export DISPLAY=:0
+    # SSH
+    eval $(keychain --eval --quiet id_rsa)
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    # OS X specific stuff goes here
+    export GROOVY_HOME=/usr/local/opt/groovy/libexec
+    # Homebrew custom paths
+    if [ -f "/usr/local/opt/mysql-client@5.7/bin" ]; then export PATH="/usr/local/opt/mysql-client@5.7/bin:$PATH"; fi
+    if [ -f "/usr/local/opt/postgresql@9.6/bin" ]; then export PATH="/usr/local/opt/postgresql@9.6/bin:$PATH"; fi
+    if [ -f "/usr/local/opt/kube-ps1/share/kube-ps1.sh" ]; then source "/usr/local/opt/kube-ps1/share/kube-ps1.sh"; fi
+fi
 
 # NVM - Node version manager
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
 
 # Jabba - Java version manager
 [ -s "$HOME/.jabba/jabba.sh" ] && source "$HOME/.jabba/jabba.sh"
 
-# add Pulumi to the PATH
-export PATH=$PATH:$HOME/.pulumi/bin
+# Add pip path for using --user if exists
+if [ -f "$HOME/.local/bin" ]; then export PATH="$PATH:$HOME/.local/bin"; fi
+
+# Add Pulumi to the PATH if exists
+if [ -f "$HOME/.pulumi/bin" ]; then export PATH="$PATH:$HOME/.pulumi/bin"; fi
+
+# Add cargo to PATH if exists
+if [ -f "$HOME/.cargo/bin" ]; then export PATH="$PATH:$HOME/.cargo/bin"; fi
+
+# Add gettext bin to PATH if exists
+if [ -f "/usr/local/opt/gettext/bin" ]; then export PATH="$PATH:/usr/local/opt/gettext/bin"; fi
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/google-cloud-sdk/path.zsh.inc"; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/google-cloud-sdk/completion.zsh.inc"; fi
+
+export ANSIBLE_VAULT_PASSWORD_FILE="~/.vault_pass.txt"
+
+# Added by Krypton
+export GPG_TTY=$(tty)
+
+# Jabba jvm version manager
+[ -s "$HOME/.jabba/jabba.sh" ] && source "$HOME/.jabba/jabba.sh"
+
+if [ -f "/usr/local/opt/helm@2/bin" ]; then export PATH="/usr/local/opt/helm@2/bin:$PATH"; fi
+
+# PIP package installs
+export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+
+# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
+export PATH="$PATH:$HOME/.rvm/bin"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+
+#__conda_setup="$('/usr/local/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+#if [ $? -eq 0 ]; then
+#    eval "$__conda_setup"
+#else
+#    if [ -f "/usr/local/anaconda3/etc/profile.d/conda.sh" ]; then
+#        . "/usr/local/anaconda3/etc/profile.d/conda.sh"
+#    else
+#        export PATH="/usr/local/anaconda3/bin:$PATH"
+#    fi
+#fi
+#unset __conda_setup
+# <<< conda initialize <<<

@@ -1,6 +1,7 @@
 [user]
-	name = 'Niklas Grebe'
-	email = 'niklas.grebe@bytro.com'
+	name = Niklas Grebe
+	email = niklas.grebe@bytro.com
+	signingkey = 683E3A93
 [alias]
 	co = checkout
 	ci = commit
@@ -18,9 +19,28 @@
 	branch = auto
 [core]
 	autocrlf = input
+	excludesfile = /Users/nik/.gitignore_global
 [i18n]
 	filesEncoding = utf-8
 	commitencoding = utf-8
 	logoutputencoding = utf-8
 [github]
 	name = 'ThYpHo0n'
+[difftool "sourcetree"]
+	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
+	path = 
+[mergetool "sourcetree"]
+	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+	trustExitCode = true
+[commit]
+	template = /Users/nik/.stCommitMsg
+	gpgSign = true
+[gpg]
+	program = /usr/local/bin/krgpg
+[tag]
+	forceSignAnnotated = true
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
