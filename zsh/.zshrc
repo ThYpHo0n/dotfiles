@@ -1,6 +1,7 @@
 # Plugins via antibody
-alias antibody='antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
-[[ ! -f ~/.zsh_plugins.sh ]] && antibody
+#alias antibody='antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
+#[[ ! -f ~/.zsh_plugins.sh ]] && antibody
+antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh
 source ~/.zsh_plugins.sh
 
 # Path to your oh-my-zsh installation.
@@ -35,7 +36,9 @@ COMPLETION_WAITING_DOTS="true"
 # much, much faster.
 DISABLE_UNTRACKED_FILES_DIRTY="true"
 
-zstyle :omz:plugins:ssh-agent agent-forwarding on
+zstyle :omz:plugins:keychain agents gpg,ssh
+zstyle :omz:plugins:keychain identities id_rsa
+zstyle :omz:plugins:keychain options --quiet
 
 source $ZSH/oh-my-zsh.sh
 
@@ -75,8 +78,6 @@ fi
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
     # Linux specific stuff goes here
     export DISPLAY=:0
-    # SSH
-    eval $(keychain --eval --quiet id_rsa)
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     # OS X specific stuff goes here
     export GROOVY_HOME=/usr/local/opt/groovy/libexec
@@ -127,6 +128,8 @@ export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
+
+if [ -f "$HOME/.local/bin/wakatime" ]; then export ZSH_WAKATIME_BIN="$HOME/.local/bin/wakatime"; fi
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
