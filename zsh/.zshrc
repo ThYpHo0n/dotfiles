@@ -2,6 +2,10 @@
 #alias antibody='antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
 #[[ ! -f ~/.zsh_plugins.sh ]] && antibody
 antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh
+
+zstyle :omz:plugins:keychain agents gpg,ssh
+zstyle :omz:plugins:keychain options --quiet
+
 source ~/.zsh_plugins.sh
 
 # Path to your oh-my-zsh installation.
@@ -36,9 +40,6 @@ COMPLETION_WAITING_DOTS="true"
 # much, much faster.
 DISABLE_UNTRACKED_FILES_DIRTY="true"
 
-zstyle :omz:plugins:keychain agents gpg,ssh
-zstyle :omz:plugins:keychain identities id_rsa
-zstyle :omz:plugins:keychain options --quiet
 
 source $ZSH/oh-my-zsh.sh
 
