@@ -1,7 +1,7 @@
 # Plugins via antibody
 #alias antibody='antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
 #[[ ! -f ~/.zsh_plugins.sh ]] && antibody
-antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh
+antibody bundle <~/.zsh_plugins.txt >~/.zsh_plugins.sh
 
 zstyle :omz:plugins:keychain agents gpg,ssh
 zstyle :omz:plugins:keychain options --quiet
@@ -40,7 +40,6 @@ COMPLETION_WAITING_DOTS="true"
 # much, much faster.
 DISABLE_UNTRACKED_FILES_DIRTY="true"
 
-
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
@@ -67,7 +66,7 @@ alias kmode="export PS1='\$(kube_ps1)'\$PS1"
 alias cdw='cd ~/workspace'
 
 # WSL context?
-if [[ "$(</proc/sys/kernel/osrelease)" == *microsoft* ]]; then
+if [[ -f "/proc/sys/kernel/osrelease" && "$(</proc/sys/kernel/osrelease)" == *microsoft* ]]; then
     # Start Docker daemon automatically when logging in if not running
     RUNNING=$(ps aux | grep dockerd | grep -v grep)
     if [ -z "$RUNNING" ]; then
@@ -82,10 +81,11 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     # OS X specific stuff goes here
     export GROOVY_HOME=/usr/local/opt/groovy/libexec
+    # eval minikube
+    eval $(minikube docker-env)
     # Homebrew custom paths
     if [ -f "/usr/local/opt/mysql-client@5.7/bin" ]; then export PATH="/usr/local/opt/mysql-client@5.7/bin:$PATH"; fi
     if [ -f "/usr/local/opt/postgresql@9.6/bin" ]; then export PATH="/usr/local/opt/postgresql@9.6/bin:$PATH"; fi
-    if [ -f "/usr/local/opt/kube-ps1/share/kube-ps1.sh" ]; then source "/usr/local/opt/kube-ps1/share/kube-ps1.sh"; fi
 fi
 
 # NVM - Node version manager
