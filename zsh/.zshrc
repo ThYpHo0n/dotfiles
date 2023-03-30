@@ -57,7 +57,7 @@ alias g='git'
 alias dc='docker-compose'
 alias d='docker'
 alias less='less -R'
-alias ls='ls --group-directories-first --color=auto'
+alias ls='ls --color=auto'
 alias l='ls -lah'
 alias ll='ls -lah'
 alias kctx="kubectx"
@@ -81,8 +81,6 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     # OS X specific stuff goes here
     export GROOVY_HOME=/usr/local/opt/groovy/libexec
-    # eval minikube
-    eval $(minikube docker-env)
     # Homebrew custom paths
     if [ -f "/usr/local/opt/mysql-client@5.7/bin" ]; then export PATH="/usr/local/opt/mysql-client@5.7/bin:$PATH"; fi
     if [ -f "/usr/local/opt/postgresql@9.6/bin" ]; then export PATH="/usr/local/opt/postgresql@9.6/bin:$PATH"; fi
@@ -129,8 +127,6 @@ export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
-
-if [ -f "$HOME/.local/bin/wakatime" ]; then export ZSH_WAKATIME_BIN="$HOME/.local/bin/wakatime"; fi
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
