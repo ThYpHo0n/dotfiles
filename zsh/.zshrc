@@ -75,8 +75,6 @@ if [[ -f "/proc/sys/kernel/osrelease" && "$(</proc/sys/kernel/osrelease)" == *mi
         sudo dockerd >/dev/null 2>&1 &
         disown
     fi
-    # 1password ssh agent bridge for wsl
-    source $HOME/.agent-bridge.sh
 fi
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
