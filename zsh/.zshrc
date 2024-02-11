@@ -64,15 +64,19 @@ alias kctx="kubectx"
 alias kns="kubens"
 alias kmode="export PS1='\$(kube_ps1)'\$PS1"
 alias cdw='cd ~/workspace'
+alias aiac='/home/nik/workspace/aiac/aiac'
 
 # WSL context?
 if [[ -f "/proc/sys/kernel/osrelease" && "$(</proc/sys/kernel/osrelease)" == *microsoft* ]]; then
+    export DONT_PROMPT_WSL_INSTALL=1
     # Start Docker daemon automatically when logging in if not running
     RUNNING=$(ps aux | grep dockerd | grep -v grep)
     if [ -z "$RUNNING" ]; then
         sudo dockerd >/dev/null 2>&1 &
         disown
     fi
+    # 1password ssh agent bridge for wsl
+    source $HOME/.agent-bridge.sh
 fi
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
@@ -143,3 +147,5 @@ export PATH="$PATH:$HOME/.rvm/bin"
 #fi
 #unset __conda_setup
 # <<< conda initialize <<<
+eval 
+AI_AC_ZSH_SETUP_PATH=/home/nik/.cache/ai/autocomplete/zsh_setup && test -f $AI_AC_ZSH_SETUP_PATH && source $AI_AC_ZSH_SETUP_PATH; # ai autocomplete setup
