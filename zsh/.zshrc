@@ -1,7 +1,7 @@
-# Plugins via antibody
-#alias antibody='antibody bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
-#[[ ! -f ~/.zsh_plugins.sh ]] && antibody
-antibody bundle <~/.zsh_plugins.txt >~/.zsh_plugins.sh
+# Plugins via antidote
+alias antidote='antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
+source $HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh
+antidote bundle <~/.zsh_plugins.txt >~/.zsh_plugins.sh
 
 zstyle :omz:plugins:keychain agents gpg,ssh
 zstyle :omz:plugins:keychain options --quiet
