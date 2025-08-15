@@ -1,17 +1,15 @@
 # Plugins via antidote
-alias antidote='antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.sh'
-source $HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh
-antidote bundle <~/.zsh_plugins.txt >~/.zsh_plugins.sh
+if [[ -n "$HOMEBREW_PREFIX" ]]; then
+    source $HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh
+fi
+# TODO: ArchLinux/WSL/Debian
+antidote load
 
 zstyle :omz:plugins:keychain agents gpg,ssh
 zstyle :omz:plugins:keychain options --quiet
 
-source ~/.zsh_plugins.sh
-
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
-
-#setopt nonomatch
 
 # ZSH History
 setopt extended_history
@@ -26,12 +24,6 @@ setopt hist_verify
 HIST_STAMPS="yyyy-mm-dd"
 
 ZSH_THEME="thyphoon"
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS=true
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
 
 COMPLETION_WAITING_DOTS="true"
 
@@ -60,11 +52,12 @@ alias less='less -R'
 alias ls='ls --color=auto'
 alias l='ls -lah'
 alias ll='ls -lah'
-alias kctx="kubectx"
-alias kns="kubens"
+alias kctx="kubie ctx"
+alias kns="kubie ns"
 alias kmode="export PS1='\$(kube_ps1)'\$PS1"
 alias cdw='cd ~/workspace'
 alias aiac='/home/nik/workspace/aiac/aiac'
+alias sops='sops --config ~/.sops.yaml'
 
 # WSL context?
 if [[ -f "/proc/sys/kernel/osrelease" && "$(</proc/sys/kernel/osrelease)" == *microsoft* ]]; then
@@ -108,19 +101,7 @@ if [ -f "$HOME/.cargo/bin" ]; then export PATH="$PATH:$HOME/.cargo/bin"; fi
 # Add gettext bin to PATH if exists
 if [ -f "/usr/local/opt/gettext/bin" ]; then export PATH="$PATH:/usr/local/opt/gettext/bin"; fi
 
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/google-cloud-sdk/path.zsh.inc"; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/google-cloud-sdk/completion.zsh.inc"; fi
-
 export ANSIBLE_VAULT_PASSWORD_FILE="~/.vault_pass.txt"
-
-# Added by Krypton
-export GPG_TTY=$(tty)
-
-# Jabba jvm version manager
-[ -s "$HOME/.jabba/jabba.sh" ] && source "$HOME/.jabba/jabba.sh"
 
 if [ -f "/usr/local/opt/helm@2/bin" ]; then export PATH="/usr/local/opt/helm@2/bin:$PATH"; fi
 
@@ -130,20 +111,5 @@ export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-
-#__conda_setup="$('/usr/local/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-#if [ $? -eq 0 ]; then
-#    eval "$__conda_setup"
-#else
-#    if [ -f "/usr/local/anaconda3/etc/profile.d/conda.sh" ]; then
-#        . "/usr/local/anaconda3/etc/profile.d/conda.sh"
-#    else
-#        export PATH="/usr/local/anaconda3/bin:$PATH"
-#    fi
-#fi
-#unset __conda_setup
-# <<< conda initialize <<<
-eval 
+eval
 AI_AC_ZSH_SETUP_PATH=/home/nik/.cache/ai/autocomplete/zsh_setup && test -f $AI_AC_ZSH_SETUP_PATH && source $AI_AC_ZSH_SETUP_PATH; # ai autocomplete setup
