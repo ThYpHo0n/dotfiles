@@ -1,0 +1,31 @@
+# Per-machine git identity and signing — copy to ~/.gitconfig.local and edit.
+# This file is never committed to the repo.
+
+# --- All machines --------------------------------------------------------------
+[user]
+	name = Your Name
+	email = you@example.com
+
+# --- Work machines --------------------------------------------------------------
+# Uncomment and fill in on machines where you sign commits.
+#[user]
+#	signingkey = KEYID
+#[commit]
+#	gpgSign = true
+#[tag]
+#	forceSignAnnotated = true
+#[gpg]
+#	program = /path/to/gpg
+
+# --- Optional -------------------------------------------------------------------
+# Sourcetree diff/merge tools (macOS)
+#[difftool "sourcetree"]
+#	cmd = opendiff "$LOCAL" "$REMOTE"
+#	path =
+#[mergetool "sourcetree"]
+#	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh "$LOCAL" "$REMOTE" -ancestor "$BASE" -merge "$MERGED"
+#	trustExitCode = true
+
+# Commit message template
+#[commit]
+#	template = /path/to/.stCommitMsg

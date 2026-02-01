@@ -28,7 +28,15 @@ I use [stow](https://www.gnu.org/software/stow/) to manage my dotfiles
 ```
 git clone git@github.com:ThYpHo0n/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow ghostty zsh
+stow ghostty zsh git
+```
+
+## Per-machine git setup
+The shared git config (`git/.gitconfig`) pulls in a local override via `[include]`.
+Copy the example and fill in your identity:
+```
+cp ~/dotfiles/git/.gitconfig.local.example ~/.gitconfig.local
+# edit ~/.gitconfig.local with your name, email, and any signing keys
 ```
 
 Inspired & based on by [aeolyus/dotfiles](https://github.com/aeolyus/dotfiles)
