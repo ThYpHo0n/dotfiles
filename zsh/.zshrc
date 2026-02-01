@@ -1,8 +1,9 @@
 # Plugins via antidote
 if [[ -n "$HOMEBREW_PREFIX" ]]; then
     source $HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh
+elif [[ -f /usr/share/zsh-antidote/antidote.zsh ]]; then
+    source /usr/share/zsh-antidote/antidote.zsh
 fi
-# TODO: ArchLinux/WSL/Debian
 antidote load
 
 zstyle :omz:plugins:keychain agents gpg,ssh
@@ -38,7 +39,7 @@ source $ZSH/oh-my-zsh.sh
 export LANG=en_US.UTF-8
 export LC_COLLATE=C
 export LANGUAGE=en_US:en
-export LC_ALL=C
+export LC_ALL=en_US.UTF-8
 export EDITOR='vim'
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
@@ -113,3 +114,4 @@ export PATH="$PATH:$HOME/.rvm/bin"
 
 eval
 AI_AC_ZSH_SETUP_PATH=/home/nik/.cache/ai/autocomplete/zsh_setup && test -f $AI_AC_ZSH_SETUP_PATH && source $AI_AC_ZSH_SETUP_PATH; # ai autocomplete setup
+export PATH="$HOME/.local/bin:$PATH"
