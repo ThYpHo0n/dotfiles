@@ -1,8 +1,8 @@
-#font-family = "Fira Code"
+font-family = "Hack Nerd Font"
 font-size = 12
 
 # Transparency (The classic iTerm look)
-background-opacity = 0.9
+background-opacity = 0.93
 #background-blur-radius = 20
 
 # Theme
@@ -12,6 +12,8 @@ theme = iTerm2 Default
 focus-follows-mouse = true
 
 x11-instance-name = ghostty
+
+mouse-scroll-multiplier = 6
 
 keybind = ctrl+v=paste_from_clipboard
 # --- Window & Pane Management (iTerm2 Style) ---

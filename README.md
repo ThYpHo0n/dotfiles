@@ -10,6 +10,7 @@
 * zsh & [oh-my-zsh](https://github.com/robbyrussell/oh-my-zsh)
 * https://github.com/VundleVim/Vundle.vim
 * [Antibody](https://getantibody.github.io/usage/)
+* [Hack Nerd Font](https://www.nerdfonts.com/font-downloads)
 ## MacOS
 * [Homebrew](https://brew.sh/)
 * [Jabba](https://github.com/shyiko/jabba)
