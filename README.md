@@ -2,7 +2,6 @@
 ```
  git        > global git configuration
  ghostty    > ghostty terminal settings
- hyper.is   > hyper.is terminal settings
  zsh        > oh-my-zsh plugins and themes
  ```
 
