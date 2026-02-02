@@ -12,9 +12,9 @@
 * [Hack Nerd Font](https://www.nerdfonts.com/font-downloads)
 ## MacOS
 * [Homebrew](https://brew.sh/)
-* [Jabba](https://github.com/shyiko/jabba)
 ```
-brew install stow getantibody/tap/antibody groovysdk htop gpg2 gnupg pinentry-mac kryptco/tap/kr 
+brew install stow getantibody/tap/antibody groovysdk htop gpg2 gnupg pinentry-mac fzf lsd
+brew search '/font-.*-nerd-font/' | awk '{ print $1 }' | xargs brew install --cask
 ```
 
 ## WSL/Debian

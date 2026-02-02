@@ -1,3 +1,8 @@
+ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+[[ -d $ZSH_CACHE_DIR/completions ]] || mkdir -p $ZSH_CACHE_DIR/completions  # For kubectl completions
+fpath=($ZSH_CACHE_DIR/completions $fpath)
+autoload -Uz compinit && compinit
+
 # Plugins via antidote
 if [[ -n "$HOMEBREW_PREFIX" ]]; then
     source $HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh
@@ -50,13 +55,14 @@ alias g='git'
 alias dc='docker-compose'
 alias d='docker'
 alias less='less -R'
-alias ls='ls --color=auto'
+alias ls='lsd'
 alias l='ls -lah'
 alias ll='ls -lah'
 alias kctx="kubie ctx"
 alias kns="kubie ns"
 alias kmode="export PS1='\$(kube_ps1)'\$PS1"
 alias cdw='cd ~/workspace'
+alias cdn='cd ~/Library/Mobile\ Documents/com\~apple\~CloudDocs/Documents/Obsidian/notes/'
 alias aiac='/home/nik/workspace/aiac/aiac'
 alias sops='sops --config ~/.sops.yaml'
 
@@ -80,15 +86,38 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     # Homebrew custom paths
     if [ -f "/usr/local/opt/mysql-client@5.7/bin" ]; then export PATH="/usr/local/opt/mysql-client@5.7/bin:$PATH"; fi
     if [ -f "/usr/local/opt/postgresql@9.6/bin" ]; then export PATH="/usr/local/opt/postgresql@9.6/bin:$PATH"; fi
+
+    ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+    export PATH="/Users/niklas.grebe/.rd/bin:$PATH"
+    ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+
+    # pnpm
+    export PNPM_HOME="/Users/niklas.grebe/Library/pnpm"
+    case ":$PATH:" in
+      *":$PNPM_HOME:"*) ;;
+      *) export PATH="$PNPM_HOME:$PATH" ;;
+    esac
+    # pnpm end
+
+    # PIP package installs
+    export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+
+    # The next line updates PATH for the Google Cloud SDK.
+    if [ -f '/Users/niklas.grebe/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/niklas.grebe/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+    # The next line enables shell command completion for gcloud.
+    if [ -f '/Users/niklas.grebe/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/niklas.grebe/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+
+    # php
+    export PATH="/opt/homebrew/opt/php@8.3/bin:$PATH"
+    export PATH="/opt/homebrew/opt/php@8.3/sbin:$PATH"
 fi
+
+export KUBECONFIG=~/.kube/configs/k3s-lyke.yaml
 
 # NVM - Node version manager
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
-
-# Jabba - Java version manager
-[ -s "$HOME/.jabba/jabba.sh" ] && source "$HOME/.jabba/jabba.sh"
 
 # Add pip path for using --user if exists
 if [ -f "$HOME/.local/bin" ]; then export PATH="$PATH:$HOME/.local/bin"; fi
@@ -106,12 +135,19 @@ export ANSIBLE_VAULT_PASSWORD_FILE="~/.vault_pass.txt"
 
 if [ -f "/usr/local/opt/helm@2/bin" ]; then export PATH="/usr/local/opt/helm@2/bin:$PATH"; fi
 
-# PIP package installs
-export PATH="$HOME/Library/Python/3.9/bin:$PATH"
-
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
 
 eval
-AI_AC_ZSH_SETUP_PATH=/home/nik/.cache/ai/autocomplete/zsh_setup && test -f $AI_AC_ZSH_SETUP_PATH && source $AI_AC_ZSH_SETUP_PATH; # ai autocomplete setup
+AI_AC_ZSH_SETUP_PATH=$HOME/.cache/ai/autocomplete/zsh_setup && test -f $AI_AC_ZSH_SETUP_PATH && source $AI_AC_ZSH_SETUP_PATH; # ai autocomplete setup
+
 export PATH="$HOME/.local/bin:$PATH"
+
+export GPG_TTY=$(tty)
+
+# bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# bun
+if [ -f "$HOME/.bun" ]; then export BUN_INSTALL="$HOME/.bun"; fi
+if [ -f "$HOME/.bun/bin" ]; then export PATH="$BUN_INSTALL/bin:$PATH"; fi
