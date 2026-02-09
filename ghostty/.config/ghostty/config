@@ -1,5 +1,5 @@
-font-family = "Hack Nerd Font"
-font-size = 12
+font-family = "Hack Nerd Font Mono"
+font-size = 14
 
 # Transparency (The classic iTerm look)
 background-opacity = 0.93
@@ -8,6 +8,25 @@ background-opacity = 0.93
 # Theme
 # Run 'ghostty +list-themes' in terminal to see options
 theme = iTerm2 Default
+
+# Match iTerm2's cyan / bright cyan
+palette = 0=#14191E
+palette = 1=#B43C2A
+palette = 2=#00C200
+palette = 3=#C7C400
+palette = 4=#2744C7
+palette = 5=#C040BE
+palette = 6=#00C5C7
+palette = 7=#C7C7C7
+palette = 8=#686868
+palette = 9=#DD7975
+palette = 10=#58E790
+palette = 11=#ECE100
+palette = 12=#A7ABF2
+palette = 13=#E17EE1
+palette = 14=#60FDFF
+palette = 15=#FFFFFF
+
 
 focus-follows-mouse = true
 
