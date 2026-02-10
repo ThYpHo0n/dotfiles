@@ -65,6 +65,7 @@ alias cdw='cd ~/workspace'
 alias cdn='cd ~/Library/Mobile\ Documents/com\~apple\~CloudDocs/Documents/Obsidian/notes/'
 alias aiac='/home/nik/workspace/aiac/aiac'
 alias sops='sops --config ~/.sops.yaml'
+alias cc='claude --dangerously-skip-permissions'
 
 # WSL context?
 if [[ -f "/proc/sys/kernel/osrelease" && "$(</proc/sys/kernel/osrelease)" == *microsoft* ]]; then
