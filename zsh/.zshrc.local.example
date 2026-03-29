@@ -1,0 +1,26 @@
+# Machine-specific Zsh overrides.
+# Copy to ~/.zshrc.local and adjust for the current host.
+#
+# Keep shared, portable defaults in ~/dotfiles/zsh/.zshrc.
+# Put secrets, private paths, GUI-only tooling, and host-specific aliases here.
+
+# Example aliases
+# alias cdw='cd ~/workspace'
+# alias sops='sops --config ~/.sops.yaml'
+# alias cc='claude --dangerously-skip-permissions'
+# alias co='copilot --allow-all-tools --allow-all-paths'
+# alias cx='codex --yolo -c model_reasoning_effort="high"'
+# alias cxx='codex --yolo -c model_reasoning_effort="xhigh"'
+
+# Example host-specific environment
+# export KUBECONFIG="$HOME/.kube/configs/homelab.yaml"
+# export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/.vault_pass.txt"
+
+# Example macOS-only paths
+# export PNPM_HOME="$HOME/Library/pnpm"
+# case ":$PATH:" in
+#     *":$PNPM_HOME:"*) ;;
+#     *) export PATH="$PNPM_HOME:$PATH" ;;
+# esac
+# [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ] && source "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"
+# [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ] && source "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"
