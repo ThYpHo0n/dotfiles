@@ -119,6 +119,7 @@ prepend_path "$HOME/.local/bin"
 append_path "$HOME/.pulumi/bin"
 append_path "$HOME/.cargo/bin"
 append_path "$HOME/.rvm/bin"
+append_path "$HOME/.npm-global/bin"
 
 AI_AC_ZSH_SETUP_PATH="$HOME/.cache/ai/autocomplete/zsh_setup"
 source_if_exists "$AI_AC_ZSH_SETUP_PATH"
