@@ -24,10 +24,19 @@ source_if_exists() {
 
 has_live_socket() {
     local sock="${1:-${SSH_AUTH_SOCK:-}}"
+    local probe_fd
     [[ -n "$sock" && -S "$sock" ]] || return 1
 
     zmodload zsh/net/socket 2>/dev/null || return 0
-    zsocket "$sock" 2>/dev/null
+    zsocket "$sock" 2>/dev/null || return 1
+
+    probe_fd="${REPLY:-}"
+    if [[ -n "$probe_fd" ]]; then
+        exec {probe_fd}>&-
+        unset REPLY
+    fi
+
+    return 0
 }
 
 is_forwarded_ssh_session() {
