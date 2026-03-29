@@ -102,7 +102,7 @@ stow zsh git codex ghostty
 
 ## Codex Skills
 
-The tracked Codex package lives at [`codex/.codex/skills`](/home/nik/dotfiles/codex/.codex/skills).
+The tracked Codex package lives at [`codex/.codex/skills`](codex/.codex/skills).
 Stowing `codex` creates `~/.codex/skills`, which is the shared home for personal
 skills that should exist everywhere.
 
