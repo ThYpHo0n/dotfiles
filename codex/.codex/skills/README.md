@@ -14,7 +14,8 @@ Put each skill in its own directory:
 ```
 
 Optional supporting files can live next to `SKILL.md` inside the same skill
-directory when the skill needs examples, templates, or reference assets.
+directory when the skill needs examples, templates, reference assets, or small
+portable helper scripts.
 
 ## What Belongs Here
 
@@ -30,5 +31,6 @@ directory when the skill needs examples, templates, or reference assets.
 - MCP/app wiring that should be managed as a real plugin
 
 If a skill grows beyond a portable instruction bundle and starts needing formal
-packaging, scripts, or broader distribution, promote it into a Codex plugin
-instead of expanding this directory into a pseudo-plugin system.
+packaging, install-time setup, secrets, or broader distribution, promote it
+into a Codex plugin instead of expanding this directory into a pseudo-plugin
+system.
