@@ -3,6 +3,7 @@
 Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
 ```text
+codex    shared Codex configuration and personal skills
 git      global git configuration
 ghostty  Ghostty terminal settings
 zsh      shared Zsh configuration, theme, and plugin list
@@ -28,6 +29,7 @@ The shared shell config is intentionally portable. Machine-specific paths, secre
 
 ### Optional
 
+- `codex`
 - `lsd` for the enhanced `ls` alias
 - `fzf`
 - `keychain`
@@ -89,14 +91,42 @@ cd ~/dotfiles
 For a Debian/Ubuntu server or homelab host:
 
 ```bash
-stow zsh git
+stow zsh git codex
 ```
 
 For a workstation with Ghostty installed:
 
 ```bash
-stow zsh git ghostty
+stow zsh git codex ghostty
 ```
+
+## Codex Skills
+
+The tracked Codex package lives at [`codex/.codex/skills`](codex/.codex/skills).
+Stowing `codex` creates `~/.codex/skills`, which is the shared home for personal
+skills that should exist everywhere.
+
+If `~/.codex` does not exist yet on a machine, create it before running
+`stow codex` so Stow links `skills` inside the existing Codex home instead of
+turning the whole `~/.codex` path into a symlink:
+
+```bash
+mkdir -p ~/.codex
+stow codex
+```
+
+Add each skill as its own directory containing `SKILL.md`:
+
+```text
+codex/.codex/skills/
+  my-skill/
+    SKILL.md
+```
+
+Use the dotfiles-managed skills directory for personal portable skills. If a
+skill later needs plugin packaging, marketplace metadata, scripts, or broader
+distribution, split it into a Codex plugin at that point instead of storing it
+under dotfiles.
 
 ## Local Machine Overrides
 
