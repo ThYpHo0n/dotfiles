@@ -32,7 +32,7 @@ The shared shell config is intentionally portable. Machine-specific paths, secre
 - `codex`
 - `lsd` for the enhanced `ls` alias
 - `fzf`
-- `keychain`
+- `keychain` to bootstrap a local SSH/GPG agent when no agent is already present
 - `gpg`
 - `Hack Nerd Font` for the prompt and Ghostty font setup
 - `ghostty` for desktop/workstation machines
@@ -153,6 +153,7 @@ Use `~/.zshrc.local` for:
 - private paths
 - workstation-only tools
 - host-specific aliases
+- host-specific SSH or GPG agent overrides
 - secrets or local environment variables such as `KUBECONFIG` or vault password files
 
 Examples that belong in the local override instead of the shared tracked config:
@@ -161,12 +162,16 @@ Examples that belong in the local override instead of the shared tracked config:
 - Google Cloud SDK or Rancher Desktop paths
 - iCloud/Obsidian paths
 - homelab-specific kubeconfig paths
+- machine-specific `gpg-agent` SSH socket integration
 
 ## Notes for Debian/Ubuntu Servers
 
 - The shared `zsh/.zshrc` avoids GUI-only Linux assumptions so remote shells start cleanly on headless systems.
+- In SSH sessions with agent forwarding, the shared shell preserves the forwarded `SSH_AUTH_SOCK` instead of replacing it with a server-local agent.
+- When no agent is already available, the shared shell bootstraps a local agent with `keychain` if installed, otherwise falls back to `ssh-agent`.
 - If `lsd` is not installed, the shell falls back to the platform `ls`.
 - If `ghostty` is not installed, skip `stow ghostty`.
+- If you want one machine to use `gpg-agent` as its SSH agent, keep that override in `~/.zshrc.local` on that machine.
 - WSL-specific behavior stays isolated to WSL and does not affect normal Debian/Ubuntu hosts.
 
 Inspired by [aeolyus/dotfiles](https://github.com/aeolyus/dotfiles)

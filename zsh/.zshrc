@@ -22,6 +22,53 @@ source_if_exists() {
     [[ -f "$1" ]] && source "$1"
 }
 
+has_live_socket() {
+    local sock="${1:-${SSH_AUTH_SOCK:-}}"
+    [[ -n "$sock" && -S "$sock" ]] || return 1
+
+    zmodload zsh/net/socket 2>/dev/null || return 0
+    zsocket "$sock" 2>/dev/null
+}
+
+is_forwarded_ssh_session() {
+    [[ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}" ]] && has_live_socket
+}
+
+setup_shared_agents() {
+    local short_host="${SHORT_HOST:-${(%):-%m}}"
+    local ssh_env_cache="$HOME/.ssh/environment-$short_host"
+
+    # Preserve a forwarded agent inside remote SSH sessions.
+    if is_forwarded_ssh_session; then
+        return
+    fi
+
+    # Reuse any already available local agent socket.
+    if has_live_socket; then
+        return
+    fi
+
+    if command -v keychain >/dev/null 2>&1; then
+        keychain --quiet --inherit any-once --agents gpg,ssh --host "$short_host" >/dev/null 2>&1
+        source_if_exists "$HOME/.keychain/$short_host-sh"
+        source_if_exists "$HOME/.keychain/$short_host-sh-gpg"
+
+        has_live_socket && return
+    fi
+
+    command -v ssh-agent >/dev/null 2>&1 || return
+    [[ -d "$HOME/.ssh" ]] || mkdir -p "$HOME/.ssh"
+
+    if [[ -f "$ssh_env_cache" ]]; then
+        source "$ssh_env_cache" >/dev/null 2>&1
+        has_live_socket && return
+    fi
+
+    ssh-agent -s | sed '/^echo/d' >! "$ssh_env_cache"
+    chmod 600 "$ssh_env_cache"
+    source "$ssh_env_cache" >/dev/null 2>&1
+}
+
 ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 [[ -d "$ZSH_CACHE_DIR/completions" ]] || mkdir -p "$ZSH_CACHE_DIR/completions"
 fpath=("$ZSH_CACHE_DIR/completions" $fpath)
@@ -40,10 +87,10 @@ if typeset -f antidote >/dev/null && [[ -f "$HOME/.zsh_plugins.txt" ]]; then
     antidote load "$HOME/.zsh_plugins.txt"
 fi
 
-zstyle :omz:plugins:keychain agents gpg,ssh
-zstyle :omz:plugins:keychain options --quiet
-
 export ZSH="$HOME/.oh-my-zsh"
+SHORT_HOST="${SHORT_HOST:-${(%):-%m}}"
+
+setup_shared_agents
 
 setopt extended_history
 setopt inc_append_history
