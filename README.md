@@ -102,7 +102,7 @@ stow zsh git ghostty
 
 ### Git identity
 
-The shared git config in [`git/.gitconfig`](/home/nik/dotfiles/git/.gitconfig) includes `~/.gitconfig.local`.
+The shared git config in [`git/.gitconfig`](git/.gitconfig) includes `~/.gitconfig.local`.
 
 ```bash
 cp ~/dotfiles/git/.gitconfig.local.example ~/.gitconfig.local
