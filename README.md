@@ -43,7 +43,7 @@ Install [Homebrew](https://brew.sh/) first, then:
 
 ```bash
 brew install stow antidote git zsh fzf lsd gnupg pinentry-mac keychain
-brew search '/font-.*-nerd-font/' | awk '{ print $1 }' | xargs brew install --cask
+brew install --cask font-hack-nerd-font
 ```
 
 Install `oh-my-zsh` separately if it is not already present.

@@ -65,20 +65,21 @@ source_if_exists "$ZSH/oh-my-zsh.sh"
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_COLLATE="${LC_COLLATE:-C}"
 export LANGUAGE="${LANGUAGE:-en_US:en}"
-export EDITOR="${EDITOR:-vim}"
+export EDITOR="${EDITOR:-nano}"
 
 alias g='git'
 alias d='docker'
 alias less='less -R'
 alias l='ls -lah'
 alias ll='ls -lah'
-alias co='copilot --allow-all-tools --allow-all-paths'
-alias cx='codex --yolo -c model_reasoning_effort="high"'
-alias cxx='codex --yolo -c model_reasoning_effort="xhigh"'
+alias co='copilot'
+alias cx='codex -c model_reasoning_effort="high"'
+alias cxx='codex -c model_reasoning_effort="xhigh"'
+# Keep unrestricted AI aliases in ~/.zshrc.local.
 
 if command -v docker-compose >/dev/null 2>&1; then
     alias dc='docker-compose'
-elif command -v docker >/dev/null 2>&1; then
+elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     alias dc='docker compose'
 fi
 

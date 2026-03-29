@@ -8,6 +8,9 @@
 # alias cdw='cd ~/workspace'
 # alias sops='sops --config ~/.sops.yaml'
 # alias cc='claude --dangerously-skip-permissions'
+# alias co='copilot --allow-all-tools --allow-all-paths'
+# alias cx='codex --yolo -c model_reasoning_effort="high"'
+# alias cxx='codex --yolo -c model_reasoning_effort="xhigh"'
 
 # Example host-specific environment
 # export KUBECONFIG="$HOME/.kube/configs/homelab.yaml"
