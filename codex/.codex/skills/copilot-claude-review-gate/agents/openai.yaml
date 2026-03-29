@@ -1,0 +1,4 @@
+interface:
+  display_name: "Copilot Claude Review Gate"
+  short_description: "Pre-wrap plan and code review gate"
+  default_prompt: "Run Claude Opus pre-wrap review for plan and code."
