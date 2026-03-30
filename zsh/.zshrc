@@ -172,6 +172,7 @@ source_if_exists "$NVM_DIR/nvm.sh"
 source_if_exists "$NVM_DIR/bash_completion"
 
 prepend_path "$HOME/.local/bin"
+append_path "$HOME/go/bin"
 append_path "$HOME/.pulumi/bin"
 append_path "$HOME/.cargo/bin"
 append_path "$HOME/.rvm/bin"
