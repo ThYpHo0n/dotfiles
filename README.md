@@ -3,6 +3,7 @@
 Managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
 ```text
+claude   shared Claude Code settings, hooks, and sound effects
 codex    shared Codex configuration and personal skills
 git      global git configuration
 ghostty  Ghostty terminal settings
@@ -29,7 +30,11 @@ The shared shell config is intentionally portable. Machine-specific paths, secre
 
 ### Optional
 
+- `claude` (Claude Code CLI)
 - `codex`
+- `forge` for AI shell integration (plugin, theme, completions)
+- `rtk` (Rust Token Killer) for token-optimized CLI proxying in Claude Code hooks
+- `pnpm`
 - `lsd` for the enhanced `ls` alias
 - `fzf`
 - `keychain` to bootstrap a local SSH/GPG agent when no agent is already present
@@ -91,13 +96,13 @@ cd ~/dotfiles
 For a Debian/Ubuntu server or homelab host:
 
 ```bash
-stow zsh git codex
+stow zsh git codex claude
 ```
 
 For a workstation with Ghostty installed:
 
 ```bash
-stow zsh git codex ghostty
+stow zsh git codex claude ghostty
 ```
 
 ## Codex Skills
@@ -127,6 +132,43 @@ Use the dotfiles-managed skills directory for personal portable skills. If a
 skill later needs plugin packaging, marketplace metadata, scripts, or broader
 distribution, split it into a Codex plugin at that point instead of storing it
 under dotfiles.
+
+## Claude Code Settings
+
+The tracked Claude package lives at [`claude/.claude/`](claude/.claude/).
+Stowing `claude` creates `~/.claude/settings.json` and symlinks for each hook
+script inside `~/.claude/hooks/`.
+
+If `~/.claude` does not exist yet on a machine, create it before running
+`stow claude` so Stow links individual items inside the existing Claude home
+instead of turning the whole `~/.claude` path into a symlink:
+
+```bash
+mkdir -p ~/.claude ~/.claude/hooks
+stow claude
+```
+
+Creating `~/.claude/hooks` before stowing ensures per-file symlinks so that
+plugin-managed files (like skill hooks) and local-only files (like sound
+effects) can coexist in the same directory without touching the dotfiles repo.
+
+The shared settings assume `node` is on `PATH` (for the HUD status line).
+Sound effect hooks and audio files are not tracked and should be configured
+per-machine in `settings.local.json`.
+
+### Claude machine-specific overrides
+
+Claude Code deep-merges `~/.claude/settings.local.json` over `settings.json`.
+
+```bash
+cp ~/dotfiles/claude/.claude/settings.local.json.example ~/.claude/settings.local.json
+```
+
+Use `settings.local.json` for:
+
+- machine-specific permission grants (MCP, Notion, Slack, etc.)
+- sound effect hooks (audio files and playback commands are local-only)
+- host-specific model or plugin overrides
 
 ## Local Machine Overrides
 

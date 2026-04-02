@@ -165,6 +165,8 @@ if [[ "$OSTYPE" == darwin* ]]; then
     append_path /usr/local/opt/gettext/bin
     prepend_path /usr/local/opt/helm@2/bin
     append_path "$HOME/Library/Python/3.9/bin"
+    source_if_exists /opt/homebrew/share/google-cloud-sdk/path.zsh.inc
+    source_if_exists /opt/homebrew/share/google-cloud-sdk/completion.zsh.inc
 fi
 
 export NVM_DIR="$HOME/.nvm"
@@ -190,3 +192,34 @@ source_if_exists "$HOME/.bun/_bun"
 [[ -t 1 ]] && export GPG_TTY="$(tty)"
 
 source_if_exists "$HOME/.zshrc.local"
+
+# pnpm
+export PNPM_HOME="$HOME/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+
+# >>> forge initialize >>>
+# !! Contents within this block are managed by 'forge zsh setup' !!
+# !! Do not edit manually - changes will be overwritten !!
+
+# Add required zsh plugins if not already present
+if [[ ! " ${plugins[@]} " =~ " zsh-autosuggestions " ]]; then
+    plugins+=(zsh-autosuggestions)
+fi
+if [[ ! " ${plugins[@]} " =~ " zsh-syntax-highlighting " ]]; then
+    plugins+=(zsh-syntax-highlighting)
+fi
+
+# Load forge shell plugin (commands, completions, keybindings) if not already loaded
+if [[ -z "$_FORGE_PLUGIN_LOADED" ]]; then
+    eval "$(forge zsh plugin)"
+fi
+
+# Load forge shell theme (prompt with AI context) if not already loaded
+if [[ -z "$_FORGE_THEME_LOADED" ]]; then
+    eval "$(forge zsh theme)"
+fi
+# <<< forge initialize <<<

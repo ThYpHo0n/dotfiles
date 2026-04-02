@@ -1,0 +1,28 @@
+{
+  "_comment": "Machine-specific Claude Code overrides. Copy to ~/.claude/settings.local.json and edit. Deep-merged over settings.json at startup.",
+  "permissions": {
+    "allow": []
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay ~/.claude/hooks/PeonYes3.wav"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay ~/.claude/hooks/PeonBuildingComplete1.wav"
+          }
+        ]
+      }
+    ]
+  }
+}

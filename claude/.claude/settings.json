@@ -1,0 +1,100 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr *)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl logs *)",
+      "Bash(kubectl top *)",
+      "Bash(kubectl explain *)",
+      "Bash(kubectl api-resources *)",
+      "Bash(kubectl api-versions *)",
+      "Bash(kubectl cluster-info *)",
+      "Bash(kubectl config view *)",
+      "Bash(kubectl config get-contexts *)",
+      "Bash(kubectl config current-context *)",
+      "Bash(kubectl version *)",
+      "WebSearch"
+    ]
+  },
+  "model": "opus[1m]",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(gh pr create*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/check-issue-ref.sh",
+            "timeout": 15,
+            "statusMessage": "Checking issue references..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -q 'gh api -X PUT /user/starred' && echo '{\"decision\":\"block\",\"reason\":\"Starring repositories via gh api is not allowed.\"}' || true",
+            "timeout": 5,
+            "statusMessage": "Checking for blocked commands..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/rtk-rewrite.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/shaping-ripple.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true,
+    "obsidian@obsidian-skills": true,
+    "Notion@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "compound-engineering@every-marketplace": true,
+    "planetscale@planetscale": true,
+    "claude-hud@claude-hud": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-hud": {
+      "source": {
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "skipDangerousModePermissionPrompt": true,
+  "disableTelemetry": true,
+  "disableErrorReporting": true,
+  "disableFeedbackDisplay": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash -c 'plugin_dir=$(ls -d \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | awk -F/ '\"'\"'{ print $(NF-1) \"\\t\" $(0) }'\"'\"' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -1 | cut -f2-); exec node \"${plugin_dir}dist/index.js\"'"
+  }
+}

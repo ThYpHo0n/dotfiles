@@ -1,0 +1,176 @@
+#!/usr/bin/env zsh
+# ccw - Create a git worktree and start a Claude Code session in it
+#
+# Usage:
+#   ccw <branch> [base-branch]
+#   ccw -l              List worktrees
+#   ccw -d <branch>     Remove a worktree
+#   ccw -p <branch>     Prune and remove worktree + branch
+#
+# Arguments:
+#   branch        Branch name to create/checkout (required)
+#   base-branch   Base branch to create from (default: current HEAD)
+
+set -euo pipefail
+
+readonly WORKTREE_DIR="${GIT_WORKTREE_DIR:-.worktrees}"
+
+# ── Helpers ──────────────────────────────────────────────────────────
+
+die()  { echo "error: $*" >&2; exit 1; }
+info() { echo ":: $*"; }
+
+usage() {
+    cat <<'EOF'
+Usage: ccw <branch> [base-branch]
+       ccw -l              List worktrees
+       ccw -d <branch>     Remove a worktree
+       ccw -p <branch>     Prune and remove worktree + branch
+
+Creates a git worktree, sets up the environment, and starts Claude Code.
+
+Options:
+  -l          List all worktrees
+  -d BRANCH   Remove worktree for BRANCH
+  -p BRANCH   Remove worktree and delete BRANCH
+  -h          Show this help
+EOF
+    exit 0
+}
+
+get_repo_root() {
+    git rev-parse --show-toplevel 2>/dev/null || die "not inside a git repository"
+}
+
+worktree_path() {
+    local repo_root="$1" branch="$2"
+    local sanitized="${branch//\//-}"
+    echo "${repo_root}/${WORKTREE_DIR}/${sanitized}"
+}
+
+# ── Environment Setup ────────────────────────────────────────────────
+
+setup_env() {
+    local wt_path="$1"
+
+    if [[ -f "${wt_path}/package-lock.json" ]]; then
+        info "Detected package-lock.json — running npm install"
+        (cd "$wt_path" && npm install)
+    elif [[ -f "${wt_path}/yarn.lock" ]]; then
+        info "Detected yarn.lock — running yarn install"
+        (cd "$wt_path" && yarn install)
+    elif [[ -f "${wt_path}/pnpm-lock.yaml" ]]; then
+        info "Detected pnpm-lock.yaml — running pnpm install"
+        (cd "$wt_path" && pnpm install)
+    elif [[ -f "${wt_path}/bun.lockb" || -f "${wt_path}/bun.lock" ]]; then
+        info "Detected bun lockfile — running bun install"
+        (cd "$wt_path" && bun install)
+    fi
+
+    if [[ -f "${wt_path}/Gemfile.lock" ]]; then
+        info "Detected Gemfile — running bundle install"
+        (cd "$wt_path" && bundle install)
+    fi
+
+    if [[ -f "${wt_path}/requirements.txt" ]]; then
+        info "Detected requirements.txt — running pip install"
+        (cd "$wt_path" && pip install -r requirements.txt)
+    elif [[ -f "${wt_path}/pyproject.toml" ]]; then
+        info "Detected pyproject.toml — running pip install -e ."
+        (cd "$wt_path" && pip install -e .)
+    fi
+
+    if [[ -f "${wt_path}/go.mod" ]]; then
+        info "Detected go.mod — running go mod download"
+        (cd "$wt_path" && go mod download)
+    fi
+
+    if [[ -f "${wt_path}/composer.lock" ]]; then
+        info "Detected composer.lock — running composer install"
+        (cd "$wt_path" && composer install)
+    fi
+}
+
+# ── Commands ─────────────────────────────────────────────────────────
+
+cmd_list() {
+    git worktree list
+}
+
+cmd_remove() {
+    local branch="$1"
+    local repo_root
+    repo_root="$(get_repo_root)"
+    local wt_path
+    wt_path="$(worktree_path "$repo_root" "$branch")"
+
+    [[ -d "$wt_path" ]] || die "worktree not found: $wt_path"
+
+    info "Removing worktree at $wt_path"
+    git worktree remove "$wt_path"
+}
+
+cmd_prune() {
+    local branch="$1"
+    cmd_remove "$branch"
+    info "Deleting branch $branch"
+    git branch -D "$branch"
+}
+
+cmd_create_and_run() {
+    local branch="$1"
+    local base="${2:-}"
+    local repo_root
+    repo_root="$(get_repo_root)"
+    local wt_path
+    wt_path="$(worktree_path "$repo_root" "$branch")"
+
+    if [[ -d "$wt_path" ]]; then
+        info "Worktree already exists at $wt_path"
+    else
+        # Check if branch exists remotely or locally
+        if git show-ref --verify --quiet "refs/heads/${branch}" 2>/dev/null; then
+            info "Creating worktree for existing branch: $branch"
+            git worktree add "$wt_path" "$branch"
+        elif git show-ref --verify --quiet "refs/remotes/origin/${branch}" 2>/dev/null; then
+            info "Creating worktree from remote branch: origin/$branch"
+            git worktree add "$wt_path" "$branch"
+        else
+            if [[ -n "$base" ]]; then
+                info "Creating worktree with new branch: $branch (from $base)"
+                git worktree add -b "$branch" "$wt_path" "$base"
+            else
+                info "Creating worktree with new branch: $branch (from HEAD)"
+                git worktree add -b "$branch" "$wt_path"
+            fi
+        fi
+
+        setup_env "$wt_path"
+    fi
+
+    info "Starting Claude Code in $wt_path"
+    cd "$wt_path"
+
+    # Respect the cc alias flags
+    CLAUDE_CODE_DISABLE_AUTO_MEMORY=0 claude \
+        --allow-dangerously-skip-permissions \
+        --permission-mode bypassPermissions
+}
+
+# ── Main ─────────────────────────────────────────────────────────────
+
+while getopts ":hld:p:" opt; do
+    case $opt in
+        h) usage ;;
+        l) cmd_list; exit 0 ;;
+        d) cmd_remove "$OPTARG"; exit 0 ;;
+        p) cmd_prune "$OPTARG"; exit 0 ;;
+        \?) die "unknown option: -$OPTARG (see -h)" ;;
+        :)  die "option -$OPTARG requires an argument" ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+[[ $# -ge 1 ]] || { usage; }
+
+cmd_create_and_run "$@"
