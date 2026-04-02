@@ -54,6 +54,11 @@ setup_shared_agents() {
 
     # Reuse any already available local agent socket.
     if has_live_socket; then
+        # macOS: the launchd agent may be alive but have no identities.
+        # Load any passphrases saved in the system Keychain.
+        if [[ "$OSTYPE" == darwin* ]]; then
+            ssh-add -l &>/dev/null || ssh-add --apple-load-keychain 2>/dev/null
+        fi
         return
     fi
 

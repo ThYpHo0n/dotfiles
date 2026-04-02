@@ -206,6 +206,12 @@ Examples that belong in the local override instead of the shared tracked config:
 - homelab-specific kubeconfig paths
 - machine-specific `gpg-agent` SSH socket integration
 
+## Notes for macOS
+
+- The shared `zsh/.zshrc` auto-loads SSH passphrases from the macOS Keychain into the launchd-managed agent on shell startup.
+- To store a key's passphrase in the Keychain for the first time: `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`
+- After that one-time step, new shells load the passphrase automatically and SSH operations (including `git pull`) will not prompt.
+
 ## Notes for Debian/Ubuntu Servers
 
 - The shared `zsh/.zshrc` avoids GUI-only Linux assumptions so remote shells start cleanly on headless systems.

@@ -16,6 +16,11 @@
 # export KUBECONFIG="$HOME/.kube/configs/homelab.yaml"
 # export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/.vault_pass.txt"
 
+# macOS SSH Keychain setup (one-time per key)
+# The shared .zshrc auto-loads saved passphrases into the agent on macOS,
+# but each key must be saved to the Keychain once first:
+#   ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+
 # Example macOS-only paths
 # export PNPM_HOME="$HOME/Library/pnpm"
 # case ":$PATH:" in
