@@ -323,14 +323,6 @@ source_if_exists "$HOME/.bun/_bun"
 
 source_if_exists "$HOME/.zshrc.local"
 
-# pnpm
-export PNPM_HOME="$HOME/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
-
 if command -v forge >/dev/null 2>&1; then
     # >>> forge initialize >>>
     # !! Contents within this block are managed by 'forge zsh setup' !!
