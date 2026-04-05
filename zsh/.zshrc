@@ -47,45 +47,37 @@ check_command_dep() {
 
 check_file_dep() {
     local name="$1"
-    local path="$2"
+    local dep_path="$2"
 
-    if [[ -e "$path" ]]; then
-        print_dep_status "ok" "$name" "$path"
+    if [[ -e "$dep_path" ]]; then
+        print_dep_status "ok" "$name" "$dep_path"
         return 0
     fi
 
-    print_dep_status "missing" "$name" "$path"
-    return 1
-}
-
-has_antidote() {
-    typeset -f antidote >/dev/null && return 0
-    [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh" ]] && return 0
-    [[ -f /usr/share/zsh-antidote/antidote.zsh ]] && return 0
-    [[ -f /usr/share/antidote/antidote.zsh ]] && return 0
+    print_dep_status "missing" "$name" "$dep_path"
     return 1
 }
 
 check_antidote_dep() {
     local detail="antidote.zsh not found"
+    local dep_state="missing"
 
     if typeset -f antidote >/dev/null; then
         detail="loaded in current shell"
+        dep_state="ok"
     elif [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh" ]]; then
         detail="$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh"
+        dep_state="ok"
     elif [[ -f /usr/share/zsh-antidote/antidote.zsh ]]; then
         detail="/usr/share/zsh-antidote/antidote.zsh"
+        dep_state="ok"
     elif [[ -f /usr/share/antidote/antidote.zsh ]]; then
         detail="/usr/share/antidote/antidote.zsh"
+        dep_state="ok"
     fi
 
-    if has_antidote; then
-        print_dep_status "ok" "antidote" "$detail"
-        return 0
-    fi
-
-    print_dep_status "missing" "antidote" "$detail"
-    return 1
+    print_dep_status "$dep_state" "antidote" "$detail"
+    [[ "$dep_state" == "ok" ]]
 }
 
 has_hack_nerd_font() {
