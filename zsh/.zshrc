@@ -93,6 +93,7 @@ has_hack_nerd_font() {
     for font_dir in \
         "$HOME/Library/Fonts" \
         "/Library/Fonts" \
+        "${XDG_DATA_HOME:-$HOME/.local/share}/fonts" \
         "$HOME/.local/share/fonts" \
         "$HOME/.fonts" \
         "/usr/local/share/fonts" \
