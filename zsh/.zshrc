@@ -211,7 +211,9 @@ setup_shared_agents() {
 # lacks the xterm-ghostty terminfo, fall back to xterm-256color so terminal
 # input and rendering work correctly. To install the full terminfo instead:
 #   infocmp -x xterm-ghostty | ssh <host> tic -x -
-if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
+if [[ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}" ]] \
+   && [[ "$TERM" == "xterm-ghostty" ]] \
+   && ! infocmp "$TERM" &>/dev/null; then
     export TERM=xterm-256color
 fi
 
