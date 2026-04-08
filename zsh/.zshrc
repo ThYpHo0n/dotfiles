@@ -207,6 +207,14 @@ setup_shared_agents() {
     source "$ssh_env_cache" >/dev/null 2>&1
 }
 
+# Ghostty terminfo compatibility: when SSH-ing from Ghostty into a host that
+# lacks the xterm-ghostty terminfo, fall back to xterm-256color so terminal
+# input and rendering work correctly. To install the full terminfo instead:
+#   infocmp -x xterm-ghostty | ssh <host> tic -x -
+if [[ "$TERM" == "xterm-ghostty" ]] && ! infocmp xterm-ghostty &>/dev/null; then
+    export TERM=xterm-256color
+fi
+
 ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 [[ -d "$ZSH_CACHE_DIR/completions" ]] || mkdir -p "$ZSH_CACHE_DIR/completions"
 fpath=("$ZSH_CACHE_DIR/completions" $fpath)
