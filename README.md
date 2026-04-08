@@ -220,6 +220,7 @@ Examples that belong in the local override instead of the shared tracked config:
 - If `lsd` is not installed, the shell falls back to the platform `ls`.
 - If `ghostty` is not installed, skip `stow ghostty`.
 - If you want one machine to use `gpg-agent` as its SSH agent, keep that override in `~/.zshrc.local` on that machine.
+- If you SSH from Ghostty into a remote host, the `xterm-ghostty` terminfo may be missing. The shell auto-falls back to `xterm-256color`. To enable full features, run this from your local machine: `infocmp -x xterm-ghostty | ssh <host> tic -x -`
 - WSL-specific behavior stays isolated to WSL and does not affect normal Debian/Ubuntu hosts.
 
 Inspired by [aeolyus/dotfiles](https://github.com/aeolyus/dotfiles)
