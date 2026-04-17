@@ -31,6 +31,7 @@ palette = 15=#FFFFFF
 focus-follows-mouse = true
 
 x11-instance-name = ghostty
+shell-integration-features = ssh-terminfo,ssh-env
 
 mouse-scroll-multiplier = 6
 
