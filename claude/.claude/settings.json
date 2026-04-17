@@ -19,7 +19,7 @@
       "WebSearch"
     ]
   },
-  "model": "opus[1m]",
+  "model": "claude-sonnet-4-6",
   "hooks": {
     "PreToolUse": [
       {
@@ -67,6 +67,10 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "bash -c 'export COLUMNS=${COLUMNS:-$(tput cols 2>/dev/null || echo 120)}; plugin_dir=$(ls -d \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | awk -F/ '\"'\"'{ print $(NF-1) \"\\t\" $(0) }'\"'\"' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -1 | cut -f2-); exec node \"${plugin_dir}dist/index.js\"'"
+  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
@@ -93,8 +97,5 @@
   "disableTelemetry": true,
   "disableErrorReporting": true,
   "disableFeedbackDisplay": true,
-  "statusLine": {
-    "type": "command",
-    "command": "bash -c 'plugin_dir=$(ls -d \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | awk -F/ '\"'\"'{ print $(NF-1) \"\\t\" $(0) }'\"'\"' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -1 | cut -f2-); exec node \"${plugin_dir}dist/index.js\"'"
-  }
+  "advisorModel": "opus"
 }
