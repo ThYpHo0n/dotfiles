@@ -215,7 +215,7 @@ Examples that belong in the local override instead of the shared tracked config:
 ## Notes for Debian/Ubuntu Servers
 
 - The shared `zsh/.zshrc` avoids GUI-only Linux assumptions so remote shells start cleanly on headless systems.
-- In SSH sessions with agent forwarding, the shared shell preserves the forwarded `SSH_AUTH_SOCK` instead of replacing it with a server-local agent.
+- In SSH sessions with agent forwarding, the shared shell preserves the forwarded `SSH_AUTH_SOCK` instead of replacing it with a server-local agent, even if the socket probe fails during shell startup.
 - When no agent is already available, the shared shell bootstraps a local agent with `keychain` if installed, otherwise falls back to `ssh-agent`.
 - If `lsd` is not installed, the shell falls back to the platform `ls`.
 - If `ghostty` is not installed, skip `stow ghostty`.

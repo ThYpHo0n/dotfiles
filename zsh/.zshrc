@@ -163,8 +163,56 @@ has_live_socket() {
     return 0
 }
 
+is_remote_ssh_session() {
+    [[ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}${SSH_TTY:-}" ]]
+}
+
 is_forwarded_ssh_session() {
-    [[ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}" ]] && has_live_socket
+    is_remote_ssh_session && [[ -n "${SSH_AUTH_SOCK:-}" ]]
+}
+
+ssh_key_fingerprint() {
+    local identity="$1"
+    local fingerprint=""
+
+    command -v ssh-keygen >/dev/null 2>&1 || return 1
+
+    if [[ -f "${identity}.pub" ]]; then
+        fingerprint="$(ssh-keygen -lf "${identity}.pub" 2>/dev/null | awk 'NR == 1 { print $2 }')"
+    elif [[ -f "$identity" ]]; then
+        fingerprint="$(ssh-keygen -lf "$identity" 2>/dev/null | awk 'NR == 1 { print $2 }')"
+    fi
+
+    [[ -n "$fingerprint" ]] || return 1
+    print -r -- "$fingerprint"
+}
+
+ssh_agent_has_fingerprint() {
+    local fingerprint="$1"
+    [[ -n "$fingerprint" ]] || return 1
+
+    ssh-add -l 2>/dev/null | awk '{print $2}' | grep -Fxq -- "$fingerprint"
+}
+
+load_default_ssh_identity() {
+    local identity="$HOME/.ssh/id_ed25519"
+    local fingerprint=""
+
+    [[ "$OSTYPE" == darwin* ]] && return
+    command -v ssh-add >/dev/null 2>&1 || return
+    [[ -f "$identity" ]] || return
+    has_live_socket || return
+
+    fingerprint="$(ssh_key_fingerprint "$identity")" || fingerprint=""
+    if [[ -n "$fingerprint" ]] && ssh_agent_has_fingerprint "$fingerprint"; then
+        return
+    fi
+
+    if [[ -t 0 ]]; then
+        ssh-add "$identity" >/dev/null 2>&1 || true
+    else
+        ssh-add "$identity" </dev/null >/dev/null 2>&1 || true
+    fi
 }
 
 setup_shared_agents() {
@@ -172,6 +220,8 @@ setup_shared_agents() {
     local ssh_env_cache="$HOME/.ssh/environment-$short_host"
 
     # Preserve a forwarded agent inside remote SSH sessions.
+    # Some forwarded sockets are not probeable during shell startup, but
+    # replacing SSH_AUTH_SOCK with a local agent breaks agent forwarding.
     if is_forwarded_ssh_session; then
         return
     fi
@@ -183,6 +233,7 @@ setup_shared_agents() {
         if [[ "$OSTYPE" == darwin* ]]; then
             ssh-add -l &>/dev/null || ssh-add --apple-load-keychain 2>/dev/null
         fi
+        load_default_ssh_identity
         return
     fi
 
@@ -191,7 +242,10 @@ setup_shared_agents() {
         source_if_exists "$HOME/.keychain/$short_host-sh"
         source_if_exists "$HOME/.keychain/$short_host-sh-gpg"
 
-        has_live_socket && return
+        if has_live_socket; then
+            load_default_ssh_identity
+            return
+        fi
     fi
 
     command -v ssh-agent >/dev/null 2>&1 || return
@@ -199,12 +253,16 @@ setup_shared_agents() {
 
     if [[ -f "$ssh_env_cache" ]]; then
         source "$ssh_env_cache" >/dev/null 2>&1
-        has_live_socket && return
+        if has_live_socket; then
+            load_default_ssh_identity
+            return
+        fi
     fi
 
     ssh-agent -s | sed '/^echo/d' >! "$ssh_env_cache"
     chmod 600 "$ssh_env_cache"
     source "$ssh_env_cache" >/dev/null 2>&1
+    load_default_ssh_identity
 }
 
 # Ghostty terminfo compatibility: when SSH-ing from Ghostty into a host that
