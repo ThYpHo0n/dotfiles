@@ -1,0 +1,49 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "local": {
+      "name": "local",
+      "options": {
+        "baseURL": "http://192.168.1.246:8080/v1",
+        "apiKey": "not-needed"
+      },
+      "models": {
+        "llama/qwen3.6-uncensored": {
+          "name": "qwen3.6-uncensored"
+        }
+      }
+    }
+  },
+  "model": "local/qwen3.6-uncensored",
+  "mcp": {
+    "browsermcp": {
+      "type": "local",
+      "command": ["npx", "-y", "@browsermcp/mcp@latest"],
+      "enabled": true
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.dev/mcp",
+      "oauth": {}
+    },
+    "notion": {
+      "type": "remote",
+      "url": "https://mcp.notion.com/mcp",
+      "oauth": {}
+    }
+  },
+  "plugin": ["opencode-browser"],
+  "permission": {
+    "bash": {
+      "gh pr *": "allow",
+      "grep *": "allow",
+      "ls *": "allow",
+      "kubectl *": "allow"
+    },
+    "websearch": "allow"
+  }
+}

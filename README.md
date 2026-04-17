@@ -7,6 +7,7 @@ claude   shared Claude Code settings, hooks, and sound effects
 codex    shared Codex configuration and personal skills
 git      global git configuration
 ghostty  Ghostty terminal settings
+opencode shared OpenCode configuration
 zsh      shared Zsh configuration, theme, and plugin list
 ```
 
@@ -96,13 +97,13 @@ cd ~/dotfiles
 For a Debian/Ubuntu server or homelab host:
 
 ```bash
-stow zsh git codex claude
+stow zsh git codex claude opencode
 ```
 
 For a workstation with Ghostty installed:
 
 ```bash
-stow zsh git codex claude ghostty
+stow zsh git codex claude opencode ghostty
 ```
 
 ## Codex Skills
@@ -169,6 +170,27 @@ Use `settings.local.json` for:
 - machine-specific permission grants (MCP, Notion, Slack, etc.)
 - sound effect hooks (audio files and playback commands are local-only)
 - host-specific model or plugin overrides
+
+## OpenCode Settings
+
+The tracked OpenCode package lives at
+[`opencode/.config/opencode/opencode.json`](opencode/.config/opencode/opencode.json).
+Stowing `opencode` creates `~/.config/opencode/opencode.json`.
+
+If `~/.config/opencode` does not exist yet on a machine, create it before
+running `stow opencode` so Stow links `opencode.json` inside the existing
+OpenCode config directory instead of turning the whole config directory into a
+symlink:
+
+```bash
+mkdir -p ~/.config/opencode
+stow opencode
+```
+
+The shared config keeps the local LAN provider endpoint
+`http://192.168.1.246:8080/v1` and model `local/qwen3.6-uncensored`. OpenCode
+plugin package files and installed dependencies are not tracked; install or
+restore plugin dependencies per machine if OpenCode needs them.
 
 ## Local Machine Overrides
 
