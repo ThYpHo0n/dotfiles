@@ -1,0 +1,14 @@
+# Claude Code runtime state (~/.claude is stowed from claude/) — only curated config is tracked
+claude/.claude/*
+!claude/.claude/hooks/
+!claude/.claude/settings.json
+!claude/.claude/settings.local.json.example
+
+# Codex runtime state (~/.codex is stowed from codex/) — auth.json holds credentials, never commit
+codex/.codex/*
+!codex/.codex/AGENTS.md
+!codex/.codex/hooks.json
+!codex/.codex/hooks/
+!codex/.codex/rules/
+!codex/.codex/skills/
+codex/.codex/skills/.system/
