@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "'/Users/niklas.grebe/.codex/hooks/check-issue-ref.sh'",
+            "command": "\"$HOME\"/.codex/hooks/check-issue-ref.sh",
             "timeout": 15,
             "statusMessage": "Checking issue references..."
           }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "'/Users/niklas.grebe/.codex/hooks/rtk-rewrite.sh'"
+            "command": "\"$HOME\"/.codex/hooks/rtk-rewrite.sh"
           }
         ]
       }

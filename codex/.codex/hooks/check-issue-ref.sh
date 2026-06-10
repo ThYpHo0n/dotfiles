@@ -8,7 +8,7 @@ set -euo pipefail
 INPUT=$(cat)
 
 # Check if the command already contains a Closes/Fixes/Resolves reference
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+COMMAND=$(printf '%s\n' "$INPUT" | jq -r '.tool_input.command // empty')
 if echo "$COMMAND" | grep -qiE '(closes|fixes|resolves)\s+#[0-9]+'; then
   echo '{}'
   exit 0
@@ -46,8 +46,8 @@ if [[ "$KEYWORD_COUNT" -gt 0 ]]; then
   fi
 fi
 
-# Check direct issue numbers from branch name
-DIRECT_ISSUES=""
+# Check direct issue numbers from branch name, accumulating every open issue
+DIRECT_ISSUES="[]"
 for NUM in $ISSUE_NUMBERS; do
   # Skip very small numbers that are likely not issue refs
   if [[ "$NUM" -lt 10 ]]; then
@@ -59,9 +59,9 @@ for NUM in $ISSUE_NUMBERS; do
     2>/dev/null || true)
 
   if [[ -n "$ISSUE_INFO" ]]; then
-    STATE=$(echo "$ISSUE_INFO" | jq -r '.state // empty')
+    STATE=$(printf '%s\n' "$ISSUE_INFO" | jq -r '.state // empty')
     if [[ "$STATE" == "OPEN" ]]; then
-      DIRECT_ISSUES=$(echo "$ISSUE_INFO" | jq '[{number: .number, title: .title, url: .url}]')
+      DIRECT_ISSUES=$(printf '%s\n' "$ISSUE_INFO" | jq --argjson acc "$DIRECT_ISSUES" '$acc + [{number, title, url}]')
     fi
   fi
 done
@@ -71,12 +71,8 @@ ALL_ISSUES="[]"
 if [[ -n "$FOUND_ISSUES" && "$FOUND_ISSUES" != "[]" ]]; then
   ALL_ISSUES="$FOUND_ISSUES"
 fi
-if [[ -n "$DIRECT_ISSUES" && "$DIRECT_ISSUES" != "[]" ]]; then
-  if [[ "$ALL_ISSUES" == "[]" ]]; then
-    ALL_ISSUES="$DIRECT_ISSUES"
-  else
-    ALL_ISSUES=$(echo "$ALL_ISSUES $DIRECT_ISSUES" | jq -s 'add | unique_by(.number)')
-  fi
+if [[ "$DIRECT_ISSUES" != "[]" ]]; then
+  ALL_ISSUES=$(jq -n --argjson all "$ALL_ISSUES" --argjson direct "$DIRECT_ISSUES" '$all + $direct | unique_by(.number)')
 fi
 
 # If no issues found, exit silently
@@ -86,8 +82,8 @@ if [[ "$ALL_ISSUES" == "[]" || -z "$ALL_ISSUES" ]]; then
 fi
 
 # Build a readable issue list
-ISSUE_LIST=$(echo "$ALL_ISSUES" | jq -r '.[] | "- #\(.number): \(.title) (\(.url))"')
-ISSUE_COUNT=$(echo "$ALL_ISSUES" | jq 'length')
+ISSUE_LIST=$(printf '%s\n' "$ALL_ISSUES" | jq -r '.[] | "- #\(.number): \(.title) (\(.url))"')
+ISSUE_COUNT=$(printf '%s\n' "$ALL_ISSUES" | jq 'length')
 
 # Build the context message
 CONTEXT="Found ${ISSUE_COUNT} potentially related open issue(s) in hero-handwerk/infrastructure for branch '${BRANCH}':

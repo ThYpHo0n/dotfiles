@@ -37,7 +37,7 @@ if [ -n "$RTK_VERSION" ]; then
 fi
 
 INPUT=$(cat)
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+CMD=$(printf '%s\n' "$INPUT" | jq -r '.tool_input.command // empty')
 
 if [ -z "$CMD" ]; then
   exit 0
@@ -70,8 +70,8 @@ case $EXIT_CODE in
     ;;
 esac
 
-ORIGINAL_INPUT=$(echo "$INPUT" | jq -c '.tool_input')
-UPDATED_INPUT=$(echo "$ORIGINAL_INPUT" | jq --arg cmd "$REWRITTEN" '.command = $cmd')
+ORIGINAL_INPUT=$(printf '%s\n' "$INPUT" | jq -c '.tool_input')
+UPDATED_INPUT=$(printf '%s\n' "$ORIGINAL_INPUT" | jq --arg cmd "$REWRITTEN" '.command = $cmd')
 
 if [ "$EXIT_CODE" -eq 3 ]; then
   # Ask: rewrite the command, omit permissionDecision so Claude Code prompts.
