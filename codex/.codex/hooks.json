@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(gh pr create*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/niklas.grebe/.codex/hooks/check-issue-ref.sh'",
+            "timeout": 15,
+            "statusMessage": "Checking issue references..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -q 'gh api -X PUT /user/starred' && echo '{\"decision\":\"block\",\"reason\":\"Starring repositories via gh api is not allowed.\"}' || true",
+            "timeout": 5,
+            "statusMessage": "Checking for blocked commands..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/niklas.grebe/.codex/hooks/rtk-rewrite.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}
