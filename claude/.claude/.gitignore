@@ -1,0 +1,10 @@
+# Claude Code writes runtime state (sessions, history, caches, credentials)
+# directly into this directory. Allowlist config files only — everything
+# else stays out of the repo.
+/*
+!/.gitignore
+!/CLAUDE.md
+!/settings.json
+!/settings.local.json.example
+!/hooks/
+!/agents/
