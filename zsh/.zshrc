@@ -65,6 +65,9 @@ check_antidote_dep() {
     if typeset -f antidote >/dev/null; then
         detail="loaded in current shell"
         dep_state="ok"
+    elif [[ -f "${ZDOTDIR:-$HOME}/.antidote/antidote.zsh" ]]; then
+        detail="${ZDOTDIR:-$HOME}/.antidote/antidote.zsh"
+        dep_state="ok"
     elif [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh" ]]; then
         detail="$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh"
         dep_state="ok"
@@ -281,7 +284,9 @@ fpath=("$ZSH_CACHE_DIR/completions" $fpath)
 autoload -Uz compinit && compinit
 
 # Plugins via antidote
-if [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh" ]]; then
+if [[ -f "${ZDOTDIR:-$HOME}/.antidote/antidote.zsh" ]]; then
+    source "${ZDOTDIR:-$HOME}/.antidote/antidote.zsh"
+elif [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh" ]]; then
     source "$HOMEBREW_PREFIX/opt/antidote/share/antidote/antidote.zsh"
 elif [[ -f /usr/share/zsh-antidote/antidote.zsh ]]; then
     source /usr/share/zsh-antidote/antidote.zsh
