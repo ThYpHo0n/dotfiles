@@ -63,13 +63,16 @@ sudo apt update
 sudo apt install -y git stow zsh curl fzf keychain gnupg
 ```
 
-Install `antidote` using the distro package when available:
+Install `antidote` in your home directory (run this as your normal user, without
+`sudo`):
 
 ```bash
-sudo apt install -y zsh-antidote
+git clone --depth=1 https://github.com/mattmc3/antidote.git "${ZDOTDIR:-$HOME}/.antidote"
 ```
 
-If your release does not provide `zsh-antidote`, install `antidote` manually and keep the script at one of the paths sourced by `zsh/.zshrc`, or adapt your local override.
+The shared `zsh/.zshrc` sources this user-local installation automatically.
+`zsh-antidote` is an Arch/AUR package name and is not available from the
+standard package repositories on many Debian/Ubuntu releases.
 
 Install `oh-my-zsh` separately if it is not already present.
 
