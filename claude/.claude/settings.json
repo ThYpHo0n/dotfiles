@@ -43,15 +43,6 @@
             "statusMessage": "Checking for blocked commands..."
           }
         ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/rtk-rewrite.sh"
-          }
-        ]
       }
     ],
     "PostToolUse": [

@@ -22,15 +22,6 @@
             "statusMessage": "Checking for blocked commands..."
           }
         ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME\"/.codex/hooks/rtk-rewrite.sh"
-          }
-        ]
       }
     ]
   }
