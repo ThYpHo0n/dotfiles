@@ -33,7 +33,6 @@ The shared shell config is intentionally portable. Machine-specific paths, secre
 - `claude` (Claude Code CLI)
 - `codex`
 - `forge` for AI shell integration (plugin, theme, completions)
-- `rtk` (Rust Token Killer) for token-optimized CLI proxying in Claude Code hooks
 - `pnpm`
 - `lsd` for the enhanced `ls` alias
 - `fzf`
