@@ -21,6 +21,14 @@ if [[ -z "$BRANCH" || "$BRANCH" =~ ^(main|master|develop)$ ]]; then
   exit 0
 fi
 
+# Resolve the issue repo from the current checkout's origin — issues live
+# in the repo being worked on, never a hardcoded one.
+ISSUE_REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)
+if [[ -z "$ISSUE_REPO" ]]; then
+  echo '{}'
+  exit 0
+fi
+
 # Extract keywords from branch name
 # Strip common prefixes: feature/, fix/, bugfix/, hotfix/, chore/, refactor/, etc.
 KEYWORDS=$(echo "$BRANCH" | sed -E 's#^(feature|fix|bugfix|hotfix|chore|refactor|docs|ci|test|improvement|enhancement|task)/##' | tr '/-' ' ')
@@ -34,7 +42,7 @@ FOUND_ISSUES=""
 KEYWORD_COUNT=$(echo "$KEYWORDS" | wc -w | tr -d ' ')
 if [[ "$KEYWORD_COUNT" -gt 0 ]]; then
   SEARCH_RESULT=$(gh issue list \
-    --repo hero-handwerk/infrastructure \
+    --repo "$ISSUE_REPO" \
     --state open \
     --search "$KEYWORDS" \
     --limit 5 \
@@ -54,7 +62,7 @@ for NUM in $ISSUE_NUMBERS; do
     continue
   fi
   ISSUE_INFO=$(gh issue view "$NUM" \
-    --repo hero-handwerk/infrastructure \
+    --repo "$ISSUE_REPO" \
     --json number,title,url,state \
     2>/dev/null || true)
 
@@ -90,7 +98,7 @@ ISSUE_LIST=$(echo "$ALL_ISSUES" | jq -r '.[] | "- #\(.number): \(.title) (\(.url
 ISSUE_COUNT=$(echo "$ALL_ISSUES" | jq 'length')
 
 # Build the context message
-CONTEXT="Found ${ISSUE_COUNT} potentially related open issue(s) in hero-handwerk/infrastructure for branch '${BRANCH}':
+CONTEXT="Found ${ISSUE_COUNT} potentially related open issue(s) in ${ISSUE_REPO} for branch '${BRANCH}':
 ${ISSUE_LIST}
 
 Consider updating the PR description to reference the relevant issue(s) using 'Closes #NNN' or 'Fixes #NNN'. You can use 'gh pr edit --body' to update."

@@ -8,6 +8,17 @@
 # alias cdw='cd ~/workspace'
 # alias sops='sops --config ~/.sops.yaml'
 # alias cc='claude --dangerously-skip-permissions'
+# ccl() {
+#   local tmp=$(mktemp -d)
+#   for item in ~/.claude/*(ND); do ln -s "$item" "$tmp/${item:t}"; done
+#   jq '.env = ((.env // {}) + {"CLAUDE_CODE_ATTRIBUTION_HEADER": "0"})' \
+#     ~/.claude/settings.json > "$tmp/settings.json"
+#   CLAUDE_CONFIG_DIR="$tmp" \
+#     ANTHROPIC_BASE_URL="http://localhost:8001" \
+#     ANTHROPIC_API_KEY="sk-no-key-required" \
+#     claude --dangerously-skip-permissions "$@"
+#   rm -rf "$tmp"
+# }
 # alias co='copilot --allow-all-tools --allow-all-paths'
 # alias cx='codex --yolo -c model_reasoning_effort="high"'
 # alias cxx='codex --yolo -c model_reasoning_effort="xhigh"'
@@ -15,6 +26,11 @@
 # Example host-specific environment
 # export KUBECONFIG="$HOME/.kube/configs/homelab.yaml"
 # export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/.vault_pass.txt"
+
+# Hook for `tf env` (defined in shared .zshrc): load infrastructure secrets.
+# _tf_env() {
+#     export $(cat "$HOME/workspace/infrastructure/.env" | xargs)
+# }
 
 # macOS SSH Keychain setup (one-time per key)
 # The shared .zshrc auto-loads saved passphrases into the agent on macOS,

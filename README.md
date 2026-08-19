@@ -32,7 +32,6 @@ The shared shell config is intentionally portable. Machine-specific paths, secre
 
 - `claude` (Claude Code CLI)
 - `codex`
-- `forge` for AI shell integration (plugin, theme, completions)
 - `pnpm`
 - `lsd` for the enhanced `ls` alias
 - `fzf`
