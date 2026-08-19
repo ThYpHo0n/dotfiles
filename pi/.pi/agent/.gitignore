@@ -24,3 +24,8 @@
 
 # npm output and the fd/rg binaries the file-search extension downloads
 /extensions/*/node_modules/
+
+# Whatever model you point the summaries extension at is a per-machine choice,
+# and the file is written at runtime.
+/extensions/summaries/config.private.json
+/extensions/summaries/config.private.json.*.tmp
