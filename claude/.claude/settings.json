@@ -17,9 +17,10 @@
       "Bash(kubectl config current-context *)",
       "Bash(kubectl version *)",
       "WebSearch"
-    ]
+    ],
+    "defaultMode": "auto"
   },
-  "model": "claude-sonnet-4-6",
+  "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -44,18 +45,6 @@
           }
         ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/shaping-ripple.sh",
-            "timeout": 5
-          }
-        ]
-      }
     ]
   },
   "statusLine": {
@@ -66,14 +55,13 @@
     "context7@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
-    "obsidian@obsidian-skills": true,
-    "Notion@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
-    "compound-engineering@every-marketplace": true,
-    "planetscale@planetscale": true,
-    "claude-hud@claude-hud": true
+    "claude-hud@claude-hud": true,
+    "compound-engineering@compound-engineering-plugin": true,
+    "frontend-design@claude-plugins-official": true,
+    "ponytail@ponytail": true
   },
   "extraKnownMarketplaces": {
     "claude-hud": {
@@ -81,12 +69,34 @@
         "source": "github",
         "repo": "jarrodwatts/claude-hud"
       }
+    },
+    "compound-engineering-plugin": {
+      "source": {
+        "source": "github",
+        "repo": "EveryInc/compound-engineering-plugin"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
     }
   },
-  "effortLevel": "high",
+  "effortLevel": "medium",
+  "advisorModel": "opus",
   "skipDangerousModePermissionPrompt": true,
+  "theme": "dark-ansi",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
   "disableTelemetry": true,
   "disableErrorReporting": true,
-  "disableFeedbackDisplay": true,
-  "advisorModel": "opus"
+  "disableFeedbackDisplay": true
 }

@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Keep machine-local sediment out of shared config before it reaches the remote.
+#
+# Lives outside git/ on purpose: that directory is a Stow package, and a hook
+# under it would install as ~/hooks/pre-push.
+#
+# Enable once per clone: git config --local core.hooksPath .githooks
+set -uo pipefail
+
+# pre-push receives the destination remote as $1 (name) and $2 (URL).
+remote_name="${1:-origin}"
+
+root="$(git rev-parse --show-toplevel)"
+detector="$root/bin/check-shared-config-hygiene.sh"
+zero='0000000000000000000000000000000000000000'
+
+status=0
+scanned=0
+
+# stdin: <local_ref> <local_sha> <remote_ref> <remote_sha>
+#
+# Every commit in the pushed range is checked, not just the tip: a secret
+# committed and then removed in a later commit still reaches the remote and
+# stays retrievable, even though the tip tree looks clean.
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    [ -n "${local_sha:-}" ] || continue
+    [ "$local_sha" = "$zero" ] && continue  # branch deletion pushes nothing
+
+    # macOS ships bash 3.2, so no mapfile.
+    if [ "${remote_sha:-$zero}" = "$zero" ]; then
+        # New branch: exclude only what the DESTINATION remote already has.
+        # Bare --remotes would also excuse commits pushed to a private remote,
+        # letting them reach a public one unscanned.
+        commits="$(git rev-list "$local_sha" --not --remotes="$remote_name" 2>/dev/null)"
+        rc=$?
+    else
+        commits="$(git rev-list "$remote_sha..$local_sha" 2>/dev/null)"
+        rc=$?
+    fi
+
+    # rev-list exits non-zero when the advertised remote tip is missing locally
+    # (shallow clone, freshly added remote). An empty list would then read as
+    # "nothing to check", so refuse the push instead of waving it through.
+    if [ "$rc" -ne 0 ]; then
+        printf 'pre-push: cannot enumerate commits for %s; refusing to push unscanned.\n' \
+            "${_local_ref:-?}" >&2
+        status=1
+        scanned=$((scanned + 1))
+        continue
+    fi
+
+    while IFS= read -r commit; do
+        [ -n "$commit" ] || continue
+        # --root so an initial commit is compared against /dev/null, and -c so
+        # a merge's conflict resolution is not invisible; without them those
+        # commits yield no paths and are silently skipped.
+        while IFS= read -r touched; do
+            [ -n "$touched" ] || continue
+            "$detector" "$commit" "$touched" || status=1
+        done <<< "$(git diff-tree --no-commit-id --name-only -r --root -c "$commit" 2>/dev/null)"
+    done <<< "$commits"
+    scanned=$((scanned + 1))
+done
+
+# Invoked by hand, or no ref info on stdin: fall back to the working tree.
+if [ "$scanned" -eq 0 ]; then
+    "$detector" || status=1
+fi
+
+exit "$status"

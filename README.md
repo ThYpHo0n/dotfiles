@@ -32,7 +32,6 @@ The shared shell config is intentionally portable. Machine-specific paths, secre
 
 - `claude` (Claude Code CLI)
 - `codex`
-- `forge` for AI shell integration (plugin, theme, completions)
 - `pnpm`
 - `lsd` for the enhanced `ls` alias
 - `fzf`
@@ -106,6 +105,21 @@ For a workstation with Ghostty installed:
 ```bash
 stow zsh git codex claude ghostty
 ```
+
+### Enable the pre-push hook
+
+Installers append machine-local lines to whatever rc file they find, which in a
+stow'd repo is the shared one. This hook keeps them out of the remote. Run once
+per clone:
+
+```bash
+git config --local core.hooksPath .githooks
+```
+
+[`bin/check-shared-config-hygiene.sh`](bin/check-shared-config-hygiene.sh)
+scans the commits being pushed and reports findings as `file:line`; the
+[`config-hygiene`](codex/.codex/skills/config-hygiene/SKILL.md) skill moves them
+into the `.local` overrides.
 
 ## Codex Skills
 

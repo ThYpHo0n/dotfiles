@@ -21,6 +21,25 @@ if [[ -z "$BRANCH" || "$BRANCH" =~ ^(main|master|develop)$ ]]; then
   exit 0
 fi
 
+# Resolve the issue repo the same way gh will: an explicit -R/--repo or GH_REPO
+# on the command wins, otherwise the current checkout's default repo. Suggesting
+# issues from the wrong project is worse than suggesting none.
+#
+# This reads a shell string without parsing it, so a repo-shaped token inside a
+# quoted argument can still win. The cost is a wrong suggestion, never a wrong
+# action, so the simple match is worth more than a real parser here.
+ISSUE_REPO=$(printf '%s' "$COMMAND" \
+  | grep -oE '(^|[[:space:]])(-R|--repo)[[:space:]]+[^[:space:]]+|--repo=[^[:space:]]+|GH_REPO=[^[:space:]]+' \
+  | sed -E 's/.*[[:space:]=]//' \
+  | grep -E '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$' | head -1 || true)
+if [[ -z "$ISSUE_REPO" ]]; then
+  ISSUE_REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)
+fi
+if [[ -z "$ISSUE_REPO" ]]; then
+  echo '{}'
+  exit 0
+fi
+
 # Extract keywords from branch name
 # Strip common prefixes: feature/, fix/, bugfix/, hotfix/, chore/, refactor/, etc.
 KEYWORDS=$(echo "$BRANCH" | sed -E 's#^(feature|fix|bugfix|hotfix|chore|refactor|docs|ci|test|improvement|enhancement|task)/##' | tr '/-' ' ')
@@ -34,7 +53,7 @@ FOUND_ISSUES=""
 KEYWORD_COUNT=$(echo "$KEYWORDS" | wc -w | tr -d ' ')
 if [[ "$KEYWORD_COUNT" -gt 0 ]]; then
   SEARCH_RESULT=$(gh issue list \
-    --repo hero-handwerk/infrastructure \
+    --repo "$ISSUE_REPO" \
     --state open \
     --search "$KEYWORDS" \
     --limit 5 \
@@ -47,21 +66,22 @@ if [[ "$KEYWORD_COUNT" -gt 0 ]]; then
 fi
 
 # Check direct issue numbers from branch name
-DIRECT_ISSUES=""
+DIRECT_ISSUES="[]"
 for NUM in $ISSUE_NUMBERS; do
   # Skip very small numbers that are likely not issue refs
   if [[ "$NUM" -lt 10 ]]; then
     continue
   fi
   ISSUE_INFO=$(gh issue view "$NUM" \
-    --repo hero-handwerk/infrastructure \
+    --repo "$ISSUE_REPO" \
     --json number,title,url,state \
     2>/dev/null || true)
 
   if [[ -n "$ISSUE_INFO" ]]; then
     STATE=$(echo "$ISSUE_INFO" | jq -r '.state // empty')
     if [[ "$STATE" == "OPEN" ]]; then
-      DIRECT_ISSUES=$(echo "$ISSUE_INFO" | jq '[{number: .number, title: .title, url: .url}]')
+      DIRECT_ISSUES=$(jq -n --argjson acc "${DIRECT_ISSUES:-[]}" --argjson issue "$ISSUE_INFO" \
+        '$acc + [{number: $issue.number, title: $issue.title, url: $issue.url}]')
     fi
   fi
 done
@@ -90,7 +110,7 @@ ISSUE_LIST=$(echo "$ALL_ISSUES" | jq -r '.[] | "- #\(.number): \(.title) (\(.url
 ISSUE_COUNT=$(echo "$ALL_ISSUES" | jq 'length')
 
 # Build the context message
-CONTEXT="Found ${ISSUE_COUNT} potentially related open issue(s) in hero-handwerk/infrastructure for branch '${BRANCH}':
+CONTEXT="Found ${ISSUE_COUNT} potentially related open issue(s) in ${ISSUE_REPO} for branch '${BRANCH}':
 ${ISSUE_LIST}
 
 Consider updating the PR description to reference the relevant issue(s) using 'Closes #NNN' or 'Fixes #NNN'. You can use 'gh pr edit --body' to update."

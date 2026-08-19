@@ -134,8 +134,6 @@ check_dotfile_deps() {
     print "Optional dependencies:"
     check_command_dep "claude" || ((missing_optional++))
     check_command_dep "codex" || ((missing_optional++))
-    check_command_dep "forge" || ((missing_optional++))
-    check_command_dep "rtk" || ((missing_optional++))
     check_command_dep "pnpm" || ((missing_optional++))
     check_command_dep "lsd" || ((missing_optional++))
     check_command_dep "fzf" || ((missing_optional++))
@@ -330,11 +328,38 @@ alias d='docker'
 alias less='less -R'
 alias l='ls -lah'
 alias ll='ls -lah'
-alias co='copilot'
-alias cx='codex -c model_reasoning_effort="high"'
-alias cxx='codex -c model_reasoning_effort="xhigh"'
+alias cx='codex --profile guarded-full-access'
 alias deps='check_dotfile_deps'
 # Keep unrestricted AI aliases in ~/.zshrc.local.
+
+_tf_with_github_token() {
+    if command -v gh >/dev/null 2>&1; then
+        local gh_token
+        gh_token="$(GITHUB_TOKEN= GH_TOKEN= gh auth token 2>/dev/null)"
+        if [[ -n "$gh_token" ]]; then
+            GITHUB_TOKEN="$gh_token" terraform "$@"
+            return
+        fi
+    fi
+
+    terraform "$@"
+}
+
+tf() {
+    case "$1" in
+        plan) shift; _tf_with_github_token plan --lock=false "$@" ;;
+        apply) shift; _tf_with_github_token apply "$@" ;;
+        env)
+            if typeset -f _tf_env >/dev/null; then
+                _tf_env
+            else
+                print "tf env: define _tf_env() in ~/.zshrc.local" >&2
+                return 1
+            fi
+            ;;
+        *) _tf_with_github_token "$@" ;;
+    esac
+}
 
 if command -v docker-compose >/dev/null 2>&1; then
     alias dc='docker-compose'
@@ -395,28 +420,3 @@ source_if_exists "$HOME/.bun/_bun"
 [[ -t 1 ]] && export GPG_TTY="$(tty)"
 
 source_if_exists "$HOME/.zshrc.local"
-
-if command -v forge >/dev/null 2>&1; then
-    # >>> forge initialize >>>
-    # !! Contents within this block are managed by 'forge zsh setup' !!
-    # !! Do not edit manually - changes will be overwritten !!
-
-    # Add required zsh plugins if not already present
-    if [[ ! " ${plugins[@]} " =~ " zsh-autosuggestions " ]]; then
-        plugins+=(zsh-autosuggestions)
-    fi
-    if [[ ! " ${plugins[@]} " =~ " zsh-syntax-highlighting " ]]; then
-        plugins+=(zsh-syntax-highlighting)
-    fi
-
-    # Load forge shell plugin (commands, completions, keybindings) if not already loaded
-    if [[ -z "$_FORGE_PLUGIN_LOADED" ]]; then
-        eval "$(forge zsh plugin)"
-    fi
-
-    # Load forge shell theme (prompt with AI context) if not already loaded
-    if [[ -z "$_FORGE_THEME_LOADED" ]]; then
-        eval "$(forge zsh theme)"
-    fi
-    # <<< forge initialize <<<
-fi

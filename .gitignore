@@ -8,10 +8,12 @@ claude/.claude/*
 codex/.codex/*
 !codex/.codex/AGENTS.md
 !codex/.codex/hooks.json
+!codex/.codex/guarded-full-access.config.toml
 !codex/.codex/hooks/
 # skills/ is mostly content-addressed symlinks into ~/.local/share/hero-agent;
 # only hand-written skills are tracked
 !codex/.codex/skills/
 codex/.codex/skills/*
 !codex/.codex/skills/README.md
+!codex/.codex/skills/config-hygiene/
 !codex/.codex/skills/simplify/

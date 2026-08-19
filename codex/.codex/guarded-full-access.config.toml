@@ -1,0 +1,6 @@
+# Full host access with only execpolicy rule prompts kept interactive.
+# Start with: codex --profile guarded-full-access
+# Do not combine this profile with --yolo, which disables all approvals.
+sandbox_mode = "danger-full-access"
+approval_policy = { granular = { sandbox_approval = false, rules = true, mcp_elicitations = false, request_permissions = false, skill_approval = false } }
+approvals_reviewer = "user"
