@@ -37,9 +37,14 @@
 # _tf_env() {
 #     # set -a exports every assignment while preserving quoted values and
 #     # comments; xargs would flatten both.
+#     local status
 #     set -a
 #     source "$HOME/workspace/infrastructure/.env"
+#     status=$?
 #     set +a
+#     # Return the sourcing status, not set +a's, so a missing or broken .env
+#     # fails loudly instead of letting terraform run without credentials.
+#     return $status
 # }
 
 # macOS SSH Keychain setup (one-time per key)

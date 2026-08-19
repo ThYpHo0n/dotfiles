@@ -21,9 +21,20 @@ if [[ -z "$BRANCH" || "$BRANCH" =~ ^(main|master|develop)$ ]]; then
   exit 0
 fi
 
-# Resolve the issue repo from the current checkout's origin — issues live
-# in the repo being worked on, never a hardcoded one.
-ISSUE_REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)
+# Resolve the issue repo the same way gh will: an explicit -R/--repo or GH_REPO
+# on the command wins, otherwise the current checkout's default repo. Suggesting
+# issues from the wrong project is worse than suggesting none.
+#
+# This reads a shell string without parsing it, so a repo-shaped token inside a
+# quoted argument can still win. The cost is a wrong suggestion, never a wrong
+# action, so the simple match is worth more than a real parser here.
+ISSUE_REPO=$(printf '%s' "$COMMAND" \
+  | grep -oE '(^|[[:space:]])(-R|--repo)[[:space:]]+[^[:space:]]+|--repo=[^[:space:]]+|GH_REPO=[^[:space:]]+' \
+  | sed -E 's/.*[[:space:]=]//' \
+  | grep -E '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$' | head -1 || true)
+if [[ -z "$ISSUE_REPO" ]]; then
+  ISSUE_REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)
+fi
 if [[ -z "$ISSUE_REPO" ]]; then
   echo '{}'
   exit 0

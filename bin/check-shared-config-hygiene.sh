@@ -57,12 +57,16 @@ scan_file() {
 
     # A home directory spelled out instead of $HOME breaks on every other
     # machine and publishes the username. /home/linuxbrew is a fixed prefix.
-    while IFS=: read -r line _; do
+    # -o so each match is judged on its own: a line holding both a real home
+    # and the fixed Linuxbrew prefix must still report the real one. No
+    # trailing slash required, so a bare `TOOL_HOME=/Users/alice` is caught.
+    while IFS= read -r line; do
         [ -n "${line:-}" ] && report "$file" "$line" \
             "absolute home path — use \$HOME, or move the line to a .local override"
     done < <(printf '%s\n' "$content" \
-        | grep -nE '(/Users/|/home/)[A-Za-z][A-Za-z0-9._-]*/' \
-        | grep -vE '/home/linuxbrew/' || true)
+        | grep -noE '(/Users/|/home/)[A-Za-z][A-Za-z0-9._-]*' \
+        | grep -vE ':/home/linuxbrew$' \
+        | cut -d: -f1 | uniq || true)
 
     # Blocks an installer wrote into a file it does not own.
     while IFS=: read -r line _; do
