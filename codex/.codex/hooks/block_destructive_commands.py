@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import json
 import os
+import pathlib
 import re
 import shlex
 import sys
+import tempfile
 from collections.abc import Sequence
 
 
@@ -34,6 +36,7 @@ DIRECTLY_DESTRUCTIVE = {
 
 WRAPPER_OPTIONS_WITH_VALUE = {
     "doas": {"-C", "-u"},
+    "exec": {"-a"},
     "env": {"-C", "-S", "--chdir", "--split-string", "--unset", "-u"},
     "ionice": {"-c", "-n", "-p", "-P", "-u"},
     "nice": {"-n", "--adjustment"},
@@ -90,14 +93,45 @@ def separate_unquoted_newlines(command: str) -> str:
         elif char == '"' and not single_quoted:
             double_quoted = not double_quoted
         if char == "\n" and not single_quoted and not double_quoted:
-            result.append(";")
+            # Emit the newline first: shlex ends a `#` comment at end of
+            # line, so a trailing ";" would be swallowed by a comment and the
+            # next line would merge into the commented command.
+            result.append("\n;")
         else:
             result.append(char)
     return "".join(result)
 
 
+HEREDOC = re.compile(r"""<<-?[ \t]*(?![<])(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1""")
+
+
+def strip_heredocs(command: str) -> str:
+    """Drop heredoc bodies so their lines are not parsed as commands.
+
+    Substitutions inside an unquoted heredoc are still caught: destructive_reason
+    scans command_substitutions() against the original, unstripped text.
+    """
+    if "<<" not in command:
+        return command
+
+    lines = command.split("\n")
+    kept: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        kept.append(line)
+        index += 1
+        for delimiter in (match.group(2) for match in HEREDOC.finditer(line)):
+            while index < len(lines):
+                body = lines[index]
+                index += 1
+                if body.strip() == delimiter:
+                    break
+    return "\n".join(kept)
+
+
 def tokenize(command: str) -> list[str]:
-    normalized = separate_unquoted_newlines(command)
+    normalized = separate_unquoted_newlines(strip_heredocs(command))
     lexer = shlex.shlex(normalized, posix=True, punctuation_chars=";&|()<>")
     lexer.whitespace_split = True
     lexer.commenters = "#"
@@ -164,6 +198,21 @@ def contains_flag(args: Sequence[str], short: str, long: str) -> bool:
     return False
 
 
+def positional_operands(args: Sequence[str]) -> list[str]:
+    operands: list[str] = []
+    for arg in args:
+        if arg == "--":
+            break
+        if arg.startswith("-") and arg != "-":
+            continue
+        operands.append(arg)
+    return operands
+
+
+def looks_like_path(arg: str) -> bool:
+    return arg.startswith(("./", "../", "/")) or os.path.exists(arg)
+
+
 def git_subcommand(args: Sequence[str]) -> tuple[str, list[str]]:
     index = 0
     global_options_with_value = {"-C", "-c", "--exec-path", "--git-dir", "--namespace", "--work-tree"}
@@ -198,9 +247,16 @@ def git_reason(args: Sequence[str]) -> str | None:
     if subcommand == "checkout" and (
         contains_flag(subargs, "f", "--force")
         or ("--" in subargs and subargs.index("--") < len(subargs) - 1)
+        # Without "--", git treats an operand naming an existing file as a
+        # pathspec and overwrites it from the index, discarding edits.
+        or any(looks_like_path(arg) for arg in positional_operands(subargs))
     ):
         return "destructive Git checkout"
-    if subcommand == "restore" and "--staged" not in subargs:
+    # --staged alone touches only the index, but --worktree overwrites files
+    # even when both are given.
+    if subcommand == "restore" and (
+        "--staged" not in subargs or contains_flag(subargs, "W", "--worktree")
+    ):
         return "destructive Git working-tree restore"
     if subcommand == "branch" and any(
         arg in {"-d", "-D", "--delete"}
@@ -210,11 +266,16 @@ def git_reason(args: Sequence[str]) -> str | None:
         return "Git branch deletion"
     if subcommand == "push" and (
         contains_flag(subargs, "f", "--force")
-        or "--force-with-lease" in subargs
+        or any(
+            arg == "--force-with-lease" or arg.startswith("--force-with-lease=")
+            for arg in subargs
+        )
         or "--delete" in subargs
         or any(arg.startswith(":") and len(arg) > 1 for arg in subargs)
     ):
         return "destructive Git push"
+    if subcommand == "stash" and positional_operands(subargs)[:1] in (["drop"], ["clear"]):
+        return "Git stash deletion"
     if subcommand == "prune" or (subcommand == "reflog" and "expire" in subargs):
         return "Git history pruning"
     if subcommand == "gc" and any(arg == "--prune=now" for arg in subargs):
@@ -308,7 +369,7 @@ def segment_reason(tokens: Sequence[str]) -> str | None:
         index += 1
         index = skip_redirections(tokens, index)
 
-    wrappers = {"command", "doas", "env", "ionice", "nice", "nohup", "sudo", "time"}
+    wrappers = {"command", "doas", "env", "exec", "ionice", "nice", "nohup", "sudo", "time"}
     while index < len(tokens) and executable_name(tokens[index]) in wrappers:
         wrapper = executable_name(tokens[index])
         if wrapper == "command" and any(arg in {"-v", "-V"} for arg in tokens[index + 1 :]):
@@ -381,7 +442,10 @@ def segment_reason(tokens: Sequence[str]) -> str | None:
 
     if command in SHELLS:
         for position, token in enumerate(args):
-            if token == "-c" or (token.startswith("-") and "c" in token[1:]):
+            # A long option such as --norc contains "c" but is not -c.
+            if token == "-c" or (
+                token.startswith("-") and not token.startswith("--") and "c" in token[1:]
+            ):
                 if position + 1 < len(args):
                     return destructive_reason(args[position + 1])
                 break
@@ -521,6 +585,15 @@ def run_self_test() -> int:
         "echo \"$(rm -f tmp.txt)\"",
         "printf result-`git clean -fd`",
         "xargs -0 rm < files.txt",
+        # Regressions fixed after review of PR #17
+        "git checkout README.md",
+        "git restore --staged --worktree src/app.ts",
+        "git push --force-with-lease=main",
+        "bash --norc -c 'rm -rf build'",
+        "exec rm -rf build",
+        "echo preparing # harmless comment\nrm -rf build",
+        "git stash drop",
+        "git stash clear",
     ]
     allowed = [
         "echo rm -rf build",
@@ -548,8 +621,34 @@ def run_self_test() -> int:
         "python3 -c 'print(\"rm -rf build\")'",
         "printf '%s' '`rm -rf build`'",
         "printf '%s' \"line one\nrm -rf build\"",
+        # Regressions fixed after review of PR #17
+        "git checkout main",
+        "git restore --staged src/app.ts",
+        "git stash list",
+        "cat <<'EOF'\nrm -rf build\nEOF",
+        "cat <<-EOF\nrm -rf build\nEOF",
+        "bash --norc -c 'echo rm'",
     ]
 
+    # looks_like_path() consults the filesystem, so pin the checks to a
+    # scratch directory holding one known file.
+    original_cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as scratch:
+        os.chdir(scratch)
+        pathlib.Path("README.md").write_text("")
+        try:
+            failures = _collect_failures(blocked, allowed)
+        finally:
+            os.chdir(original_cwd)
+
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        return 1
+    print(f"Passed {len(blocked) + len(allowed)} destructive-command hook checks.")
+    return 0
+
+
+def _collect_failures(blocked: Sequence[str], allowed: Sequence[str]) -> list[str]:
     failures = []
     for command in blocked:
         if destructive_reason(command) is None:
@@ -557,12 +656,7 @@ def run_self_test() -> int:
     for command in allowed:
         if reason := destructive_reason(command):
             failures.append(f"expected allow ({reason}): {command}")
-
-    if failures:
-        print("\n".join(failures), file=sys.stderr)
-        return 1
-    print(f"Passed {len(blocked) + len(allowed)} destructive-command hook checks.")
-    return 0
+    return failures
 
 
 def main() -> int:
