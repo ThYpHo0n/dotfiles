@@ -106,6 +106,21 @@ For a workstation with Ghostty installed:
 stow zsh git codex claude ghostty
 ```
 
+### Enable the pre-push hook
+
+Installers append machine-local lines to whatever rc file they find, which in a
+stow'd repo is the shared one. This hook keeps them out of the remote. Run once
+per clone:
+
+```bash
+git config --local core.hooksPath git/hooks
+```
+
+[`bin/check-shared-config-hygiene.sh`](bin/check-shared-config-hygiene.sh)
+reports findings as `file:line`; the
+[`config-hygiene`](codex/.codex/skills/config-hygiene/SKILL.md) skill moves them
+into the `.local` overrides.
+
 ## Codex Skills
 
 The tracked Codex package lives at [`codex/.codex/skills`](codex/.codex/skills).
