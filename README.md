@@ -181,6 +181,19 @@ On a new machine:
 cp ~/.pi/agent/settings.json.example ~/.pi/agent/settings.json
 ```
 
+The example sets the theme and defaults to the local `mtplx` provider, whose
+definition lives in the untracked `models.json` (see below). Drop the
+`defaultProvider`/`defaultModel` keys on a machine without that server, or pass
+`--provider`/`--model` per run.
+
+`models.json` holds provider definitions and is untracked, because it mixes
+endpoints and credentials with machine-local availability. A local
+OpenAI-compatible server is configured there as:
+
+```json
+{ "providers": { "mtplx": { "baseUrl": "http://127.0.0.1:8000/v1", "api": "openai-completions" } } }
+```
+
 ## Claude Code Settings
 
 The tracked Claude package lives at [`claude/.claude/`](claude/.claude/).
