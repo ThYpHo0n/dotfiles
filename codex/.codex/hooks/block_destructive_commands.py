@@ -1,0 +1,588 @@
+#!/usr/bin/env python3
+"""Block destructive Bash commands from Codex PreToolUse hooks."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import shlex
+import sys
+from collections.abc import Sequence
+
+
+CONTROL_CHARS = frozenset(";&|()")
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+SHELLS = {"bash", "dash", "fish", "ksh", "sh", "zsh"}
+SHELL_KEYWORDS = {"!", "{", "}", "do", "elif", "else", "if", "then", "while", "until"}
+
+DIRECTLY_DESTRUCTIVE = {
+    "halt": "system halt",
+    "mke2fs": "filesystem creation",
+    "mkfs": "filesystem creation",
+    "mkswap": "swap filesystem creation",
+    "poweroff": "system power-off",
+    "reboot": "system reboot",
+    "rmdir": "directory deletion",
+    "rm": "file deletion",
+    "shred": "secure file overwrite",
+    "shutdown": "system shutdown",
+    "truncate": "file truncation",
+    "unlink": "file deletion",
+    "wipefs": "filesystem signature removal",
+}
+
+WRAPPER_OPTIONS_WITH_VALUE = {
+    "doas": {"-C", "-u"},
+    "env": {"-C", "-S", "--chdir", "--split-string", "--unset", "-u"},
+    "ionice": {"-c", "-n", "-p", "-P", "-u"},
+    "nice": {"-n", "--adjustment"},
+    "sudo": {
+        "-C",
+        "-D",
+        "-g",
+        "-h",
+        "-p",
+        "-R",
+        "-T",
+        "-u",
+        "--chdir",
+        "--group",
+        "--host",
+        "--prompt",
+        "--role",
+        "--type",
+        "--user",
+    },
+    "time": {"-f", "-o", "--format", "--output"},
+}
+
+
+def executable_name(token: str) -> str:
+    return os.path.basename(token).lower()
+
+
+def informational_only(args: Sequence[str]) -> bool:
+    return any(arg in {"--help", "--version"} for arg in args)
+
+
+def is_control(token: str) -> bool:
+    return bool(token) and set(token) <= CONTROL_CHARS
+
+
+def separate_unquoted_newlines(command: str) -> str:
+    result: list[str] = []
+    single_quoted = False
+    double_quoted = False
+    escaped = False
+
+    for char in command:
+        if escaped:
+            result.append(char)
+            escaped = False
+            continue
+        if char == "\\" and not single_quoted:
+            result.append(char)
+            escaped = True
+            continue
+        if char == "'" and not double_quoted:
+            single_quoted = not single_quoted
+        elif char == '"' and not single_quoted:
+            double_quoted = not double_quoted
+        if char == "\n" and not single_quoted and not double_quoted:
+            result.append(";")
+        else:
+            result.append(char)
+    return "".join(result)
+
+
+def tokenize(command: str) -> list[str]:
+    normalized = separate_unquoted_newlines(command)
+    lexer = shlex.shlex(normalized, posix=True, punctuation_chars=";&|()<>")
+    lexer.whitespace_split = True
+    lexer.commenters = "#"
+    return list(lexer)
+
+
+def command_segments(tokens: Sequence[str]) -> list[list[str]]:
+    segments: list[list[str]] = []
+    current: list[str] = []
+    for token in tokens:
+        if is_control(token):
+            if current:
+                segments.append(current)
+                current = []
+            continue
+        current.append(token)
+    if current:
+        segments.append(current)
+    return segments
+
+
+def skip_redirections(tokens: Sequence[str], index: int) -> int:
+    while index < len(tokens):
+        token = tokens[index]
+        if token.isdigit() and index + 1 < len(tokens) and any(
+            char in tokens[index + 1] for char in "<>"
+        ):
+            index += 1
+            token = tokens[index]
+        if not token or not all(char in "<>&" for char in token):
+            break
+        index += 2
+    return index
+
+
+def skip_wrapper(tokens: Sequence[str], index: int, wrapper: str) -> int:
+    index += 1
+    options_with_value = WRAPPER_OPTIONS_WITH_VALUE.get(wrapper, set())
+
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "--":
+            return index + 1
+        if wrapper == "env" and ASSIGNMENT.match(token):
+            index += 1
+            continue
+        if not token.startswith("-") or token == "-":
+            break
+
+        option = token.split("=", 1)[0]
+        index += 1
+        if option in options_with_value and "=" not in token and index < len(tokens):
+            index += 1
+
+    return index
+
+
+def contains_flag(args: Sequence[str], short: str, long: str) -> bool:
+    for arg in args:
+        if arg == long:
+            return True
+        if arg.startswith("-") and not arg.startswith("--") and short in arg[1:]:
+            return True
+    return False
+
+
+def git_subcommand(args: Sequence[str]) -> tuple[str, list[str]]:
+    index = 0
+    global_options_with_value = {"-C", "-c", "--exec-path", "--git-dir", "--namespace", "--work-tree"}
+    while index < len(args):
+        token = args[index]
+        if token == "--":
+            index += 1
+            break
+        if not token.startswith("-"):
+            break
+        option = token.split("=", 1)[0]
+        index += 1
+        if option in global_options_with_value and "=" not in token and index < len(args):
+            index += 1
+    if index >= len(args):
+        return "", []
+    return args[index].lower(), list(args[index + 1 :])
+
+
+def git_reason(args: Sequence[str]) -> str | None:
+    if informational_only(args):
+        return None
+    subcommand, subargs = git_subcommand(args)
+    dry_run = contains_flag(subargs, "n", "--dry-run")
+
+    if subcommand == "rm":
+        return "Git file deletion"
+    if subcommand == "reset" and "--hard" in subargs:
+        return "destructive Git hard reset"
+    if subcommand == "clean" and not dry_run:
+        return "destructive Git clean"
+    if subcommand == "checkout" and (
+        contains_flag(subargs, "f", "--force")
+        or ("--" in subargs and subargs.index("--") < len(subargs) - 1)
+    ):
+        return "destructive Git checkout"
+    if subcommand == "restore" and "--staged" not in subargs:
+        return "destructive Git working-tree restore"
+    if subcommand == "branch" and any(
+        arg in {"-d", "-D", "--delete"}
+        or (arg.startswith("-") and not arg.startswith("--") and any(flag in arg[1:] for flag in "dD"))
+        for arg in subargs
+    ):
+        return "Git branch deletion"
+    if subcommand == "push" and (
+        contains_flag(subargs, "f", "--force")
+        or "--force-with-lease" in subargs
+        or "--delete" in subargs
+        or any(arg.startswith(":") and len(arg) > 1 for arg in subargs)
+    ):
+        return "destructive Git push"
+    if subcommand == "prune" or (subcommand == "reflog" and "expire" in subargs):
+        return "Git history pruning"
+    if subcommand == "gc" and any(arg == "--prune=now" for arg in subargs):
+        return "immediate Git history pruning"
+    return None
+
+
+def disk_reason(command: str, args: Sequence[str]) -> str | None:
+    if command == "dd":
+        if any(arg in {"--help", "--version"} for arg in args):
+            return None
+        return "raw block copy or overwrite"
+    if command == "fdisk":
+        return None if any(arg in {"-l", "--list", "--help", "--version"} for arg in args) else "disk partition edit"
+    if command == "sfdisk":
+        readonly = {"--dump", "--help", "--list", "--verify", "--version"}
+        return None if any(arg in readonly for arg in args) else "disk partition edit"
+    if command == "parted":
+        readonly = {"-l", "--list", "--help", "--version", "print"}
+        return None if any(arg in readonly for arg in args) else "disk partition edit"
+    if command == "cfdisk":
+        return "interactive disk partition edit"
+    if command == "diskutil" and args:
+        destructive = {
+            "apfsdeletecontainer",
+            "apfsdeletevolume",
+            "apfserasecontainer",
+            "erasedisk",
+            "erasevolume",
+            "partitiondisk",
+            "randomdisk",
+            "secureerase",
+            "zerodisk",
+        }
+        if args[0].lower() in destructive:
+            return "disk erase or partition operation"
+    return None
+
+
+def platform_reason(command: str, args: Sequence[str]) -> str | None:
+    lowered = [arg.lower() for arg in args]
+    dry_run = any(arg == "--dry-run" or arg.startswith("--dry-run=") for arg in lowered)
+    if command in {"kubectl", "oc"} and "delete" in lowered and not dry_run:
+        return "cluster resource deletion"
+    if command == "helm" and any(arg in {"delete", "uninstall"} for arg in lowered):
+        return "Helm release deletion"
+    if command in {"terraform", "tofu"} and (
+        "destroy" in lowered or ("apply" in lowered and "-destroy" in lowered)
+    ):
+        return "infrastructure destruction"
+    if command in {"docker", "podman"} and lowered:
+        destructive_subcommands = {"rm", "rmi", "prune"}
+        if lowered[0] in destructive_subcommands:
+            return "container resource deletion"
+        if len(lowered) > 1 and lowered[1] in destructive_subcommands and lowered[0] in {
+            "builder",
+            "container",
+            "image",
+            "network",
+            "system",
+            "volume",
+        }:
+            return "container resource deletion or pruning"
+        if lowered[0] == "compose" and "down" in lowered and any(
+            arg in {"-v", "--volumes"} for arg in lowered
+        ):
+            return "container volume deletion"
+    return None
+
+
+def database_reason(command: str, args: Sequence[str]) -> str | None:
+    if informational_only(args):
+        return None
+    if command in {"dropdb", "dropuser"}:
+        return "database object deletion"
+    joined = " ".join(args)
+    destructive_sql = re.compile(
+        r"\b(?:DROP\s+(?:DATABASE|SCHEMA|TABLE)|TRUNCATE(?:\s+TABLE)?|DELETE\s+FROM)\b",
+        re.IGNORECASE,
+    )
+    if command in {"mysql", "psql", "sqlite3"} and destructive_sql.search(joined):
+        return "destructive SQL statement"
+    if command == "redis-cli" and re.search(r"\bFLUSH(?:ALL|DB)\b", joined, re.IGNORECASE):
+        return "Redis database flush"
+    return None
+
+
+def segment_reason(tokens: Sequence[str]) -> str | None:
+    index = skip_redirections(tokens, 0)
+    while index < len(tokens) and (ASSIGNMENT.match(tokens[index]) or tokens[index] in SHELL_KEYWORDS):
+        index += 1
+        index = skip_redirections(tokens, index)
+
+    wrappers = {"command", "doas", "env", "ionice", "nice", "nohup", "sudo", "time"}
+    while index < len(tokens) and executable_name(tokens[index]) in wrappers:
+        wrapper = executable_name(tokens[index])
+        if wrapper == "command" and any(arg in {"-v", "-V"} for arg in tokens[index + 1 :]):
+            return None
+        if wrapper == "sudo" and any(arg in {"-l", "--list", "-v", "--validate"} for arg in tokens[index + 1 :]):
+            return None
+        index = skip_wrapper(tokens, index, wrapper)
+        index = skip_redirections(tokens, index)
+
+    if index >= len(tokens):
+        return None
+
+    command = executable_name(tokens[index])
+    args = list(tokens[index + 1 :])
+
+    if command in DIRECTLY_DESTRUCTIVE and not informational_only(args):
+        return DIRECTLY_DESTRUCTIVE[command]
+    if command.startswith("mkfs."):
+        return "filesystem creation"
+
+    disk = disk_reason(command, args)
+    if disk:
+        return disk
+
+    if command == "git":
+        reason = git_reason(args)
+        if reason:
+            return reason
+
+    if command == "find" and "-delete" in args:
+        return "find-based file deletion"
+    if command == "find":
+        for marker in ("-exec", "-execdir"):
+            if marker in args:
+                nested = segment_reason(args[args.index(marker) + 1 :])
+                if nested:
+                    return nested
+
+    if command == "xargs":
+        options_with_value = {
+            "-a",
+            "-E",
+            "-I",
+            "-L",
+            "-n",
+            "-P",
+            "-s",
+            "--arg-file",
+            "--eof",
+            "--max-args",
+            "--max-chars",
+            "--max-lines",
+            "--max-procs",
+            "--replace",
+        }
+        position = 0
+        while position < len(args):
+            token = args[position]
+            if token == "--":
+                position += 1
+                break
+            if not token.startswith("-") or token == "-":
+                break
+            option = token.split("=", 1)[0]
+            position += 1
+            if option in options_with_value and "=" not in token and position < len(args):
+                position += 1
+        if position < len(args):
+            return segment_reason(args[position:])
+
+    if command in SHELLS:
+        for position, token in enumerate(args):
+            if token == "-c" or (token.startswith("-") and "c" in token[1:]):
+                if position + 1 < len(args):
+                    return destructive_reason(args[position + 1])
+                break
+    if command == "eval" and args:
+        return destructive_reason(" ".join(args))
+
+    return platform_reason(command, args) or database_reason(command, args)
+
+
+def command_substitutions(command: str) -> list[str]:
+    substitutions: list[str] = []
+    index = 0
+    single_quoted = False
+    double_quoted = False
+
+    while index < len(command):
+        char = command[index]
+        if char == "\\":
+            index += 2
+            continue
+        if char == "'" and not double_quoted:
+            single_quoted = not single_quoted
+            index += 1
+            continue
+        if char == '"' and not single_quoted:
+            double_quoted = not double_quoted
+            index += 1
+            continue
+        if single_quoted:
+            index += 1
+            continue
+
+        if char == "`":
+            end = index + 1
+            while end < len(command):
+                if command[end] == "\\":
+                    end += 2
+                    continue
+                if command[end] == "`":
+                    substitutions.append(command[index + 1 : end])
+                    index = end + 1
+                    break
+                end += 1
+            else:
+                index += 1
+            continue
+
+        if command.startswith("$(", index) and not command.startswith("$((", index):
+            depth = 1
+            end = index + 2
+            nested_single = False
+            nested_double = False
+            while end < len(command):
+                nested_char = command[end]
+                if nested_char == "\\":
+                    end += 2
+                    continue
+                if nested_char == "'" and not nested_double:
+                    nested_single = not nested_single
+                elif nested_char == '"' and not nested_single:
+                    nested_double = not nested_double
+                elif not nested_single and nested_char == "(":
+                    depth += 1
+                elif not nested_single and nested_char == ")":
+                    depth -= 1
+                    if depth == 0:
+                        substitutions.append(command[index + 2 : end])
+                        index = end + 1
+                        break
+                end += 1
+            else:
+                index += 2
+            continue
+
+        index += 1
+
+    return substitutions
+
+
+def destructive_reason(command: str) -> str | None:
+    if re.search(r":\s*\(\s*\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:", command):
+        return "shell fork bomb"
+
+    for substitution in command_substitutions(command):
+        if reason := destructive_reason(substitution):
+            return reason
+
+    try:
+        tokens = tokenize(command)
+    except ValueError:
+        return "command could not be parsed safely"
+
+    for segment in command_segments(tokens):
+        reason = segment_reason(segment)
+        if reason:
+            return reason
+    return None
+
+
+def deny(reason: str) -> None:
+    message = (
+        f"Blocked destructive command ({reason}). "
+        "Run it manually outside Codex or disable this hook in /hooks if the operation is intentional."
+    )
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": message,
+                }
+            }
+        )
+    )
+
+
+def run_self_test() -> int:
+    blocked = [
+        "rm -rf build",
+        "cd /tmp && /bin/rm stale.txt",
+        "sudo -u root git reset --hard HEAD",
+        "git clean -fdx",
+        "git checkout -- README.md",
+        "git restore src/app.ts",
+        "find . -delete",
+        "bash -lc 'rm -rf build'",
+        "echo $(rm -f tmp.txt)",
+        "docker system prune -af",
+        "kubectl delete namespace production",
+        "terraform destroy -auto-approve",
+        "psql -c 'DROP TABLE users'",
+        "diskutil eraseDisk APFS Empty /dev/disk4",
+        "dd if=image.iso of=/dev/disk4",
+        "shutdown -h now",
+        ":(){ :|:& };:",
+        "echo \"$(rm -f tmp.txt)\"",
+        "printf result-`git clean -fd`",
+        "xargs -0 rm < files.txt",
+    ]
+    allowed = [
+        "echo rm -rf build",
+        "printf '%s\\n' 'git reset --hard'",
+        "git status",
+        "git reset --soft HEAD~1",
+        "git clean -ndx",
+        "git restore --staged src/app.ts",
+        "find . -name '*.tmp' -print",
+        "bash -lc 'echo rm'",
+        "docker system df",
+        "kubectl get pods",
+        "terraform plan",
+        "psql -c 'SELECT 1'",
+        "diskutil list",
+        "fdisk -l",
+        "dd --version",
+        "rm --help",
+        "git restore --help",
+        "kubectl delete pod demo --dry-run=client",
+        "command -v rm",
+        "sudo -l rm",
+        "xargs -I{} echo rm {}",
+        "echo ok # rm -rf ignored-comment",
+        "python3 -c 'print(\"rm -rf build\")'",
+        "printf '%s' '`rm -rf build`'",
+        "printf '%s' \"line one\nrm -rf build\"",
+    ]
+
+    failures = []
+    for command in blocked:
+        if destructive_reason(command) is None:
+            failures.append(f"expected block: {command}")
+    for command in allowed:
+        if reason := destructive_reason(command):
+            failures.append(f"expected allow ({reason}): {command}")
+
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        return 1
+    print(f"Passed {len(blocked) + len(allowed)} destructive-command hook checks.")
+    return 0
+
+
+def main() -> int:
+    if sys.argv[1:] == ["--self-test"]:
+        return run_self_test()
+
+    try:
+        payload = json.load(sys.stdin)
+    except (json.JSONDecodeError, OSError):
+        deny("hook input could not be parsed safely")
+        return 0
+
+    command = payload.get("tool_input", {}).get("command")
+    if not isinstance(command, str) or not command.strip():
+        return 0
+
+    if reason := destructive_reason(command):
+        deny(reason)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

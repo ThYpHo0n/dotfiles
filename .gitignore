@@ -9,6 +9,9 @@ codex/.codex/*
 !codex/.codex/AGENTS.md
 !codex/.codex/hooks.json
 !codex/.codex/hooks/
-!codex/.codex/rules/
+# skills/ is mostly content-addressed symlinks into ~/.local/share/hero-agent;
+# only hand-written skills are tracked
 !codex/.codex/skills/
-codex/.codex/skills/.system/
+codex/.codex/skills/*
+!codex/.codex/skills/README.md
+!codex/.codex/skills/simplify/
