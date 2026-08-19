@@ -7,6 +7,7 @@ claude   shared Claude Code settings, hooks, and sound effects
 codex    shared Codex configuration and personal skills
 git      global git configuration
 ghostty  Ghostty terminal settings
+pi       shared Pi agent extensions, skills, and theme
 zsh      shared Zsh configuration, theme, and plugin list
 ```
 
@@ -97,13 +98,13 @@ cd ~/dotfiles
 For a Debian/Ubuntu server or homelab host:
 
 ```bash
-stow zsh git codex claude
+stow zsh git codex claude pi
 ```
 
 For a workstation with Ghostty installed:
 
 ```bash
-stow zsh git codex claude ghostty
+stow zsh git codex claude ghostty pi
 ```
 
 ### Enable the pre-push hook
@@ -148,6 +149,37 @@ Use the dotfiles-managed skills directory for personal portable skills. If a
 skill later needs plugin packaging, marketplace metadata, scripts, or broader
 distribution, split it into a Codex plugin at that point instead of storing it
 under dotfiles.
+
+## Pi
+
+Stowing `pi` links `~/.pi/agent` to [`pi/.pi/agent`](pi/.pi/agent). The extensions
+are adapted from [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi-setup):
+`github-dark-default` theme, a custom footer (`ui-customization` + `model-info` +
+`git-info`), background terminals, subagents, workflows, an ask-user tool, `fd`/`rg`
+search, summaries, and clipboard copy. Firecrawl is deliberately not included.
+
+Pi discovers extensions from `~/.pi/agent/extensions/` on startup, so nothing needs
+registering. Each extension carries its own dependencies, so install at the root
+**and** per extension:
+
+```bash
+cd ~/.pi/agent
+npm install
+for e in extensions/*/; do (cd "$e" && npm install); done
+npm run check && npm test
+```
+
+Runtime state stays untracked: credentials, sessions, model caches, the `fd`/`rg`
+binaries under `bin/`, and every `node_modules`. `skills/` is the same
+content-addressed symlink farm as Codex, so only the two skills shipping with the
+extensions are tracked.
+
+`settings.json` mixes the theme with per-machine runtime keys, so it is untracked.
+On a new machine:
+
+```bash
+cp ~/.pi/agent/settings.json.example ~/.pi/agent/settings.json
+```
 
 ## Claude Code Settings
 

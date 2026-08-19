@@ -1,0 +1,26 @@
+# Pi writes runtime state (credentials, sessions, downloaded binaries, model
+# caches) straight into this directory. Allowlist the config that should travel
+# between machines; everything else stays local.
+/*
+!/.gitignore
+!/AGENTS.md
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/settings.json.example
+!/extensions/
+!/themes/
+
+# settings.json carries per-machine runtime keys alongside the theme, so it is
+# never tracked. Copy settings.json.example on a new machine.
+
+# skills/ is the same content-addressed symlink farm as ~/.codex/skills: the
+# entries point into ~/.local/share/hero-agent and go stale on reinstall. Only
+# the two skills that ship with the extensions are tracked.
+!/skills/
+/skills/*
+!/skills/background-terminals/
+!/skills/subagents/
+
+# npm output and the fd/rg binaries the file-search extension downloads
+/extensions/*/node_modules/
