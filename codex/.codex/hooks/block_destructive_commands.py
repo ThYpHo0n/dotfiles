@@ -66,7 +66,13 @@ def executable_name(token: str) -> str:
 
 
 def informational_only(args: Sequence[str]) -> bool:
-    return any(arg in {"--help", "--version"} for arg in args)
+    for arg in args:
+        # After "--" these are filename operands, not options.
+        if arg == "--":
+            return False
+        if arg in {"--help", "--version"}:
+            return True
+    return False
 
 
 def is_control(token: str) -> bool:
@@ -105,11 +111,11 @@ def separate_unquoted_newlines(command: str) -> str:
 HEREDOC = re.compile(r"""<<-?[ \t]*(?![<])(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1""")
 
 
-def strip_heredocs(command: str) -> str:
+def strip_heredocs(command: str, *, only_quoted: bool = False) -> str:
     """Drop heredoc bodies so their lines are not parsed as commands.
 
-    Substitutions inside an unquoted heredoc are still caught: destructive_reason
-    scans command_substitutions() against the original, unstripped text.
+    With only_quoted, keep unquoted bodies: bash expands substitutions there, so
+    they still need scanning, while a quoted delimiter makes the body literal.
     """
     if "<<" not in command:
         return command
@@ -121,12 +127,22 @@ def strip_heredocs(command: str) -> str:
         line = lines[index]
         kept.append(line)
         index += 1
-        for delimiter in (match.group(2) for match in HEREDOC.finditer(line)):
+        for match in HEREDOC.finditer(line):
+            quoted = bool(match.group(1))
+            delimiter = match.group(2)
+            # A quoted delimiter makes the body literal; an unquoted one still
+            # expands substitutions, so keep those lines when the caller only
+            # wants literal bodies removed.
+            drop = quoted or not only_quoted
             while index < len(lines):
                 body = lines[index]
                 index += 1
                 if body.strip() == delimiter:
+                    if not drop:
+                        kept.append(body)
                     break
+                if not drop:
+                    kept.append(body)
     return "\n".join(kept)
 
 
@@ -151,6 +167,24 @@ def command_segments(tokens: Sequence[str]) -> list[list[str]]:
     if current:
         segments.append(current)
     return segments
+
+
+def redirection_reason(tokens: Sequence[str]) -> str | None:
+    """Flag `>` onto a file that already exists; the shell truncates it."""
+    for position, token in enumerate(tokens):
+        if not token or not set(token) <= set("<>&|") or ">" not in token:
+            continue
+        if ">>" in token:  # append does not truncate
+            continue
+        if position + 1 >= len(tokens):
+            continue
+        target = tokens[position + 1]
+        # Character devices are not user data.
+        if target.startswith("/dev/"):
+            continue
+        if looks_like_path(target):
+            return "output redirection over an existing file"
+    return None
 
 
 def skip_redirections(tokens: Sequence[str], index: int) -> int:
@@ -254,6 +288,16 @@ def git_reason(args: Sequence[str]) -> str | None:
         return "destructive Git checkout"
     # --staged alone touches only the index, but --worktree overwrites files
     # even when both are given.
+    if subcommand == "switch" and (
+        contains_flag(subargs, "f", "--force") or "--discard-changes" in subargs
+    ):
+        return "destructive Git switch"
+    if (
+        subcommand == "worktree"
+        and positional_operands(subargs)[:1] == ["remove"]
+        and contains_flag(subargs, "f", "--force")
+    ):
+        return "forced Git worktree removal"
     if subcommand == "restore" and (
         "--staged" not in subargs or contains_flag(subargs, "W", "--worktree")
     ):
@@ -271,6 +315,7 @@ def git_reason(args: Sequence[str]) -> str | None:
             for arg in subargs
         )
         or "--delete" in subargs
+        or "--mirror" in subargs
         or any(arg.startswith(":") and len(arg) > 1 for arg in subargs)
     ):
         return "destructive Git push"
@@ -364,6 +409,9 @@ def database_reason(command: str, args: Sequence[str]) -> str | None:
 
 
 def segment_reason(tokens: Sequence[str]) -> str | None:
+    if reason := redirection_reason(tokens):
+        return reason
+
     index = skip_redirections(tokens, 0)
     while index < len(tokens) and (ASSIGNMENT.match(tokens[index]) or tokens[index] in SHELL_KEYWORDS):
         index += 1
@@ -372,11 +420,15 @@ def segment_reason(tokens: Sequence[str]) -> str | None:
     wrappers = {"command", "doas", "env", "exec", "ionice", "nice", "nohup", "sudo", "time"}
     while index < len(tokens) and executable_name(tokens[index]) in wrappers:
         wrapper = executable_name(tokens[index])
-        if wrapper == "command" and any(arg in {"-v", "-V"} for arg in tokens[index + 1 :]):
+        boundary = skip_wrapper(tokens, index, wrapper)
+        # Only the wrapper's own options count; `command rm -rf build -v` passes
+        # -v to rm, and must not be read as `command -v`.
+        wrapper_flags = tokens[index + 1 : boundary]
+        if wrapper == "command" and any(arg in {"-v", "-V"} for arg in wrapper_flags):
             return None
-        if wrapper == "sudo" and any(arg in {"-l", "--list", "-v", "--validate"} for arg in tokens[index + 1 :]):
+        if wrapper == "sudo" and any(arg in {"-l", "--list", "-v", "--validate"} for arg in wrapper_flags):
             return None
-        index = skip_wrapper(tokens, index, wrapper)
+        index = boundary
         index = skip_redirections(tokens, index)
 
     if index >= len(tokens):
@@ -398,6 +450,19 @@ def segment_reason(tokens: Sequence[str]) -> str | None:
         reason = git_reason(args)
         if reason:
             return reason
+
+    if command == "rsync" and not contains_flag(args, "n", "--dry-run"):
+        delete_modes = {
+            "--del",
+            "--delete",
+            "--delete-after",
+            "--delete-before",
+            "--delete-delay",
+            "--delete-during",
+            "--delete-excluded",
+        }
+        if any(arg in delete_modes for arg in args):
+            return "rsync destination deletion"
 
     if command == "find" and "-delete" in args:
         return "find-based file deletion"
@@ -493,7 +558,9 @@ def command_substitutions(command: str) -> list[str]:
                 index += 1
             continue
 
-        if command.startswith("$(", index) and not command.startswith("$((", index):
+        if (
+            command.startswith("$(", index) and not command.startswith("$((", index)
+        ) or command.startswith("<(", index) or command.startswith(">(", index):
             depth = 1
             end = index + 2
             nested_single = False
@@ -529,7 +596,7 @@ def destructive_reason(command: str) -> str | None:
     if re.search(r":\s*\(\s*\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:", command):
         return "shell fork bomb"
 
-    for substitution in command_substitutions(command):
+    for substitution in command_substitutions(strip_heredocs(command, only_quoted=True)):
         if reason := destructive_reason(substitution):
             return reason
 
@@ -594,6 +661,20 @@ def run_self_test() -> int:
         "echo preparing # harmless comment\nrm -rf build",
         "git stash drop",
         "git stash clear",
+        # Second review round
+        "echo replacement > README.md",
+        "> README.md",
+        "git push --mirror origin",
+        "git switch --discard-changes other",
+        "git switch -f other",
+        "git worktree remove --force ../wt",
+        "cat <(rm -rf build)",
+        "rm -- --help",
+        "git rm -- --help",
+        "rsync -a --delete empty/ destination/",
+        "command rm -rf build -v",
+        "sudo rm -rf build -v",
+        "cat <<EOF\n$(rm -rf build)\nEOF",
     ]
     allowed = [
         "echo rm -rf build",
@@ -628,6 +709,15 @@ def run_self_test() -> int:
         "cat <<'EOF'\nrm -rf build\nEOF",
         "cat <<-EOF\nrm -rf build\nEOF",
         "bash --norc -c 'echo rm'",
+        # Second review round
+        "cat <<'EOF'\n$(rm -rf build)\nEOF",
+        "echo x > brand-new-output.txt",
+        "echo x >> README.md",
+        "ls > /dev/null",
+        "rsync -a --delete --dry-run empty/ destination/",
+        "git switch other",
+        "git worktree remove ../wt",
+        "git worktree list",
     ]
 
     # looks_like_path() consults the filesystem, so pin the checks to a
