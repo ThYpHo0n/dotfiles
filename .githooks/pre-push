@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Keep machine-local sediment out of shared config before it reaches the remote.
+#
+# Lives outside git/ on purpose: that directory is a Stow package, and a hook
+# under it would install as ~/hooks/pre-push.
+#
+# Enable once per clone: git config --local core.hooksPath .githooks
+set -uo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+detector="$root/bin/check-shared-config-hygiene.sh"
+zero='0000000000000000000000000000000000000000'
+
+status=0
+scanned=0
+
+# stdin: <local_ref> <local_sha> <remote_ref> <remote_sha>
+#
+# Every commit in the pushed range is checked, not just the tip: a secret
+# committed and then removed in a later commit still reaches the remote and
+# stays retrievable, even though the tip tree looks clean.
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    [ -n "${local_sha:-}" ] || continue
+    [ "$local_sha" = "$zero" ] && continue  # branch deletion pushes nothing
+
+    # macOS ships bash 3.2, so no mapfile.
+    if [ "${remote_sha:-$zero}" = "$zero" ]; then
+        # New branch: everything not already reachable from another remote ref.
+        commits="$(git rev-list "$local_sha" --not --remotes 2>/dev/null)"
+    else
+        commits="$(git rev-list "$remote_sha..$local_sha" 2>/dev/null)"
+    fi
+
+    while IFS= read -r commit; do
+        [ -n "$commit" ] || continue
+        while IFS= read -r touched; do
+            [ -n "$touched" ] || continue
+            "$detector" "$commit" "$touched" || status=1
+        done <<< "$(git diff-tree --no-commit-id --name-only -r "$commit" 2>/dev/null)"
+    done <<< "$commits"
+    scanned=$((scanned + 1))
+done
+
+# Invoked by hand, or no ref info on stdin: fall back to the working tree.
+if [ "$scanned" -eq 0 ]; then
+    "$detector" || status=1
+fi
+
+exit "$status"

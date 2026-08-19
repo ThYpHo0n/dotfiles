@@ -329,16 +329,6 @@ alias less='less -R'
 alias l='ls -lah'
 alias ll='ls -lah'
 alias cx='codex --profile guarded-full-access'
-alias claudex='ANTHROPIC_BASE_URL=http://127.0.0.1:8317 \
-ANTHROPIC_AUTH_TOKEN=sk-1 \
-CLAUDE_CODE_SUBAGENT_MODEL=gpt-5.6-sol \
-CLAUDE_CODE_ALWAYS_ENABLE_EFFORT=1 \
-CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=3 \
-ENABLE_TOOL_SEARCH=false \
-CLAUDE_CODE_CONTEXT_MANAGEMENT=aggressive \
-CLAUDE_CODE_AUTO_SUMMARIZE=true \
-CLAUDE_CODE_SUMMARIZATION_THRESHOLD=120000 \
-claude --model gpt-5.6-sol'
 alias deps='check_dotfile_deps'
 # Keep unrestricted AI aliases in ~/.zshrc.local.
 

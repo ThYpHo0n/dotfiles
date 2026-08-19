@@ -8,9 +8,15 @@
 # alias cdw='cd ~/workspace'
 # alias sops='sops --config ~/.sops.yaml'
 # alias cc='claude --dangerously-skip-permissions'
+# Point Claude at a proxy running on this machine only.
+# alias claudex='ANTHROPIC_BASE_URL=http://127.0.0.1:8317 \
+# ANTHROPIC_AUTH_TOKEN=sk-local \
+# claude --model gpt-5.6-sol'
 # ccl() {
 #   local tmp=$(mktemp -d)
 #   for item in ~/.claude/*(ND); do ln -s "$item" "$tmp/${item:t}"; done
+#   # Drop the symlink first: redirecting into it would truncate the real file.
+#   rm -f "$tmp/settings.json"
 #   jq '.env = ((.env // {}) + {"CLAUDE_CODE_ATTRIBUTION_HEADER": "0"})' \
 #     ~/.claude/settings.json > "$tmp/settings.json"
 #   CLAUDE_CONFIG_DIR="$tmp" \
@@ -29,7 +35,11 @@
 
 # Hook for `tf env` (defined in shared .zshrc): load infrastructure secrets.
 # _tf_env() {
-#     export $(cat "$HOME/workspace/infrastructure/.env" | xargs)
+#     # set -a exports every assignment while preserving quoted values and
+#     # comments; xargs would flatten both.
+#     set -a
+#     source "$HOME/workspace/infrastructure/.env"
+#     set +a
 # }
 
 # macOS SSH Keychain setup (one-time per key)

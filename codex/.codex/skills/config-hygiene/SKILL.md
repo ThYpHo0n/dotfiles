@@ -21,10 +21,13 @@ when you need the current rules; do not restate them here.
 ## 1. Find it
 
 ```bash
-./bin/check-shared-config-hygiene.sh
+./bin/check-shared-config-hygiene.sh        # the working tree
+./bin/check-shared-config-hygiene.sh HEAD   # a commit's tree
 ```
 
-Each finding prints as `file:line: reason`. Done when you have the full list —
+Each finding prints as `file:line: reason`. The pre-push hook uses the second
+form against each ref being pushed, so a commit carrying sediment is caught
+even once the working tree has been cleaned. Done when you have the full list —
 the script exits 0 only when the tree is clean, so a non-zero exit with no
 output means the script itself is broken and needs fixing first.
 

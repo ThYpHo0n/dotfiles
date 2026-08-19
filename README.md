@@ -113,11 +113,11 @@ stow'd repo is the shared one. This hook keeps them out of the remote. Run once
 per clone:
 
 ```bash
-git config --local core.hooksPath git/hooks
+git config --local core.hooksPath .githooks
 ```
 
 [`bin/check-shared-config-hygiene.sh`](bin/check-shared-config-hygiene.sh)
-reports findings as `file:line`; the
+scans the commits being pushed and reports findings as `file:line`; the
 [`config-hygiene`](codex/.codex/skills/config-hygiene/SKILL.md) skill moves them
 into the `.local` overrides.
 

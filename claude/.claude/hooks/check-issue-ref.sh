@@ -55,7 +55,7 @@ if [[ "$KEYWORD_COUNT" -gt 0 ]]; then
 fi
 
 # Check direct issue numbers from branch name
-DIRECT_ISSUES=""
+DIRECT_ISSUES="[]"
 for NUM in $ISSUE_NUMBERS; do
   # Skip very small numbers that are likely not issue refs
   if [[ "$NUM" -lt 10 ]]; then
@@ -69,7 +69,8 @@ for NUM in $ISSUE_NUMBERS; do
   if [[ -n "$ISSUE_INFO" ]]; then
     STATE=$(echo "$ISSUE_INFO" | jq -r '.state // empty')
     if [[ "$STATE" == "OPEN" ]]; then
-      DIRECT_ISSUES=$(echo "$ISSUE_INFO" | jq '[{number: .number, title: .title, url: .url}]')
+      DIRECT_ISSUES=$(jq -n --argjson acc "${DIRECT_ISSUES:-[]}" --argjson issue "$ISSUE_INFO" \
+        '$acc + [{number: $issue.number, title: $issue.title, url: $issue.url}]')
     fi
   fi
 done

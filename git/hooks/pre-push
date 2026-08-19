@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-# Keep machine-local sediment out of shared config before it reaches the remote.
-# Enable once per clone: git config --local core.hooksPath git/hooks
-set -euo pipefail
-exec "$(git rev-parse --show-toplevel)/bin/check-shared-config-hygiene.sh"
