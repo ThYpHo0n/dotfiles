@@ -8,7 +8,7 @@ import { createSubagentRuntime, runTool } from "./src/runtime.ts";
 
 const parent: ParentContext = {
   parentCwd: process.cwd(),
-  projectTrusted: false,
+  projectTrusted: true,
 };
 
 function task(prompt: string): SpawnTask {

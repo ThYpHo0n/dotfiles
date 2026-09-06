@@ -4,6 +4,7 @@ import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 import {
   createRunBoundary,
   getRunEntries,
+  redactSecrets,
   serializeRunTranscript,
   TRANSCRIPT_MAX_BYTES,
 } from "./src/transcript.ts";
@@ -16,6 +17,33 @@ const usage = {
   totalTokens: 2,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 };
+
+test("redaction consumes quoted secrets including spaces, escapes, and truncated values", () => {
+  for (const value of [
+    '"hello world"',
+    "'hello world'",
+    String.raw`"hello \"quoted\" world"`,
+    String.raw`'hello \'quoted\' world'`,
+    '"hello\nworld"',
+    '"hello world',
+    "'hello world",
+    "plain-value",
+  ]) {
+    assert.equal(redactSecrets(`password: ${value}`), "password: [REDACTED]");
+  }
+  assert.equal(
+    redactSecrets('{"password": "hello world", "ok": true}'),
+    '{"password": [REDACTED], "ok": true}',
+  );
+  const transcript = serializeRunTranscript([
+    entry("secret", {
+      role: "user",
+      content: 'password: "hello world"',
+      timestamp: 0,
+    }),
+  ]);
+  assert.doesNotMatch(transcript, /hello|world/);
+});
 
 function entry(
   id: string,

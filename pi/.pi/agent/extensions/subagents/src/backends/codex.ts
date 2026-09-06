@@ -305,6 +305,11 @@ const makeCodexSession = (
   task: SpawnTask,
 ): Effect.Effect<SubagentSession, SpawnError, Scope.Scope> =>
   Effect.gen(function* () {
+    if (!task.parent.projectTrusted) {
+      return yield* new SpawnError({
+        message: "Codex subagents require a trusted working directory.",
+      });
+    }
     const binary = resolveCodexBinary();
     if (!binary) {
       return yield* new SpawnError({
@@ -886,9 +891,7 @@ const makeCodexSession = (
           capabilities: { experimentalApi: true },
         });
         writeMessage({ method: "initialized" });
-        // Headless children cannot answer approval prompts. The caller
-        // already chose to launch an autonomous subagent, so give the thread
-        // full workspace access without interactive approval requests.
+        // Trust is checked before launching the headless app-server.
         return request("thread/start", {
           cwd: task.cwd,
           approvalPolicy: "never",
@@ -915,7 +918,7 @@ const makeCodexSession = (
     };
     if (task.reasoningEffort) {
       // Optional capability probe: never let a slow/unsupported model/list
-      // hold up the spawn (and its concurrency reservation) for the full
+      // hold up the spawn for the full
       // request timeout; the unclamped preferred effort is a fine fallback.
       const modelList = yield* Effect.tryPromise(() =>
         request("model/list", { includeHidden: true }, MODEL_LIST_TIMEOUT_MS),

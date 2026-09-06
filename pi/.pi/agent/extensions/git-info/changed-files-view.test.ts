@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { sanitizeTerminalText } from "./src/changed-files-view.ts";
+import { sanitizeTerminalText } from "../shared/terminal-text.ts";
 
 test("repository text cannot inject terminal control sequences", () => {
   const input =

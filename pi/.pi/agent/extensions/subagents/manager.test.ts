@@ -170,49 +170,27 @@ test("spawn origin propagates to ids, snapshots, and settlement", async () => {
   });
 });
 
-test("the global concurrency cap includes by-the-way sessions", async () => {
-  await withManager(async (manager, runtime) => {
-    const tasks: SpawnTask[] = [
-      { ...task("side question"), origin: "btw" },
-      task("Task 2"),
-      task("Task 3"),
-      task("Task 4"),
-    ];
-    const spawns = await runTool(
-      runtime,
-      Effect.forEach(tasks, (spawnTask) => manager.spawn("codex", spawnTask), {
-        concurrency: "unbounded",
-      }),
-    );
-    assert.equal(spawns.length, 4);
-    await assert.rejects(
-      runTool(
-        runtime,
-        manager.spawn("codex", {
-          ...task("another side question"),
-          origin: "btw",
-        }),
-      ),
-      /Max 4 subagents/,
-    );
-  });
-});
-
-test("the concurrency cap rejects a fifth running subagent", async () => {
+test("model and by-the-way subagents can exceed four concurrent runs", async () => {
   await withManager(async (manager, runtime) => {
     const spawns = await runTool(
       runtime,
       Effect.forEach(
-        [1, 2, 3, 4],
-        (n) => manager.spawn("codex", task(`Task ${n}`)),
+        [1, 2, 3, 4, 5],
+        (n) =>
+          manager.spawn("codex", {
+            ...task(`Task ${n}`),
+            origin: n === 5 ? "btw" : "model",
+          }),
         { concurrency: "unbounded" },
       ),
     );
-    assert.equal(spawns.length, 4);
-    await assert.rejects(
-      runTool(runtime, manager.spawn("codex", task("Task 5"))),
-      /Max 4 subagents/,
+    assert.equal(spawns.length, 5);
+    assert.equal(
+      manager.view.list().filter((s) => s.status === "running").length,
+      5,
     );
+    await runTool(runtime, manager.waitFor(spawns.map((s) => s.id)));
+    assert.ok(manager.view.list().every((s) => s.status === "done"));
   });
 });
 
@@ -222,15 +200,13 @@ test("pi spawn fails fast without the parent model registry", async () => {
       runTool(runtime, manager.spawn("pi", task("needs a registry"))),
       /model registry/,
     );
-    // The failed spawn must release its concurrency reservation.
     const snap = await runTool(runtime, manager.spawn("codex", task("ok")));
     assert.equal(snap.backend, "codex");
   });
 });
 
-test("idle restarts respect the concurrency cap", async () => {
+test("idle subagents can restart alongside four running agents", async () => {
   await withManager(async (manager, runtime) => {
-    // Settle one subagent, then fill all four slots with running ones.
     const settled = await runTool(
       runtime,
       manager.spawn("claude", task("early finisher")),
@@ -244,12 +220,12 @@ test("idle restarts respect the concurrency cap", async () => {
         { concurrency: "unbounded" },
       ),
     );
-    // Restarting the settled one would be a fifth concurrent run.
-    await assert.rejects(
-      runTool(runtime, manager.send(settled.id, "go again")),
-      /Max 4 subagents/,
-    );
-    assert.equal(manager.view.get(settled.id)?.status, "done");
+    await runTool(runtime, manager.send(settled.id, "go again"));
+    while (manager.view.get(settled.id)?.status !== "running") {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    await runTool(runtime, manager.waitFor([settled.id]));
+    assert.match(manager.view.get(settled.id)?.finalText ?? "", /go again/);
   });
 });
 

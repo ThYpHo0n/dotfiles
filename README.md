@@ -156,7 +156,7 @@ Stowing `pi` links `~/.pi/agent` to [`pi/.pi/agent`](pi/.pi/agent). The extensio
 are adapted from [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi-setup):
 `github-dark-default` theme, a custom footer (`ui-customization` + `model-info` +
 `git-info`), background terminals, subagents, workflows, an ask-user tool, `fd`/`rg`
-search, summaries, and clipboard copy. Firecrawl is deliberately not included.
+search, summaries, and clipboard copy. Upstream revision: `73bf4d8`.
 
 Pi discovers extensions from `~/.pi/agent/extensions/` on startup, so nothing needs
 registering. Each extension carries its own dependencies, so install at the root
@@ -164,10 +164,15 @@ registering. Each extension carries its own dependencies, so install at the root
 
 ```bash
 cd ~/.pi/agent
-npm install
-for e in extensions/*/; do (cd "$e" && npm install); done
-npm run check && npm test
+npm ci
+for e in extensions/*/; do
+  if [ -f "$e/package-lock.json" ]; then npm ci --prefix "$e" || break; fi
+done
+npm run check && npm run format:check && npm test
 ```
+
+Use Node.js 22.19 or newer. `npm test` runs local tests; `npm run test:live`
+starts authenticated Claude/Codex sessions and can incur model usage charges.
 
 Runtime state stays untracked: credentials, sessions, model caches, the `fd`/`rg`
 binaries under `bin/`, and every `node_modules`. `skills/` is the same

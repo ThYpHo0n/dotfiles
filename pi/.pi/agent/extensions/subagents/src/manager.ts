@@ -35,14 +35,8 @@ import type {
   SubagentStatus,
   TranscriptItem,
 } from "./domain.ts";
-import {
-  BackendUnavailableError,
-  ConcurrencyLimitError,
-  SendError,
-  SpawnError,
-} from "./domain.ts";
+import { BackendUnavailableError, SendError, SpawnError } from "./domain.ts";
 
-export const MAX_RUNNING = 4;
 export const MAX_TRACKED = 64;
 const STOP_TIMEOUT_MS = 5_000;
 const ERROR_TEXT_MAX_LENGTH = 4_096;
@@ -99,9 +93,6 @@ interface Entry {
   scope: Scope.Closeable;
   pump?: Fiber.Fiber<void>;
   liveToolMap: Map<string, LiveToolState>;
-  /** Idle restart dispatched but RunStarted not folded yet; counts as running
-   * so concurrent restarts cannot race past the cap. */
-  restarting?: boolean;
 }
 
 // --- Read model ----------------------------------------------------------------
@@ -142,10 +133,7 @@ export interface SubagentManagerShape {
   spawn(
     backend: BackendName,
     task: SpawnTask,
-  ): Effect.Effect<
-    SubagentSnapshot,
-    SpawnError | ConcurrencyLimitError | BackendUnavailableError
-  >;
+  ): Effect.Effect<SubagentSnapshot, SpawnError | BackendUnavailableError>;
   /**
    * Wait until all listed subagents are settled. Unknown ids are treated as
    * settled (the tool layer validates ids first). While waiting, settles for
@@ -190,7 +178,6 @@ const makeManager = Effect.gen(function* () {
   const cleanups = new Set<Fiber.Fiber<unknown>>();
   let modelCounter = 0;
   let btwCounter = 0;
-  let reserved = 0;
   let disposed = false;
   let onSettled:
     ((snap: SubagentSnapshot, consumed: boolean) => void) | undefined;
@@ -226,11 +213,6 @@ const makeManager = Effect.gen(function* () {
       if (index >= 0) changeWaiters.splice(index, 1);
     });
   });
-
-  const runningCount = () =>
-    [...entries.values()].filter(
-      (e) => e.snapshot.status === "running" || e.restarting === true,
-    ).length;
 
   const addInterest = (ids: ReadonlyArray<string>) => {
     for (const id of ids) waitInterest.set(id, (waitInterest.get(id) ?? 0) + 1);
@@ -269,7 +251,6 @@ const makeManager = Effect.gen(function* () {
 
   const settle = (entry: Entry, outcome: RunOutcome) => {
     const s = entry.snapshot;
-    entry.restarting = false;
     if (s.status !== "running") return;
     s.settledAt = Date.now();
     switch (outcome._tag) {
@@ -315,7 +296,6 @@ const makeManager = Effect.gen(function* () {
     const s = entry.snapshot;
     switch (event._tag) {
       case "RunStarted":
-        entry.restarting = false;
         s.status = "running";
         s.settledAt = undefined;
         s.errorText = undefined;
@@ -421,109 +401,85 @@ const makeManager = Effect.gen(function* () {
 
   const spawn = (backendName: BackendName, task: SpawnTask) =>
     Effect.gen(function* () {
-      // Reserve synchronously (before the first yield inside doSpawn) so
-      // parallel tool calls cannot race past the global cap.
-      yield* Effect.suspend(
-        (): Effect.Effect<void, SpawnError | ConcurrencyLimitError> => {
-          if (disposed) {
-            return new SpawnError({
-              message: "Subagent manager is shutting down.",
-            });
-          }
-          if (runningCount() + reserved >= MAX_RUNNING) {
-            return new ConcurrencyLimitError({
-              message: `Max ${MAX_RUNNING} subagents can run concurrently. Wait for one to finish before spawning another.`,
-            });
-          }
-          reserved++;
-          return Effect.void;
-        },
+      if (disposed) {
+        return yield* new SpawnError({
+          message: "Subagent manager is shutting down.",
+        });
+      }
+
+      const backend: SubagentBackend | undefined = registry.get(backendName);
+      if (!backend) {
+        return yield* new BackendUnavailableError({
+          message: `Unknown backend "${backendName}".`,
+        });
+      }
+      const available = yield* backend.available;
+      if (!available) {
+        return yield* new BackendUnavailableError({
+          message: `Backend "${backendName}" is not available on this machine (binary/SDK/credentials missing).`,
+        });
+      }
+
+      const scope = yield* Scope.make();
+      const session = yield* Scope.provide(backend.spawn(task), scope).pipe(
+        Effect.onError(() => Scope.close(scope, Exit.void)),
       );
+      if (disposed) {
+        yield* Scope.close(scope, Exit.void);
+        return yield* new SpawnError({
+          message: "Subagent manager shut down while spawning.",
+        });
+      }
 
-      const doSpawn = Effect.gen(function* () {
-        const backend: SubagentBackend | undefined = registry.get(backendName);
-        if (!backend) {
-          return yield* new BackendUnavailableError({
-            message: `Unknown backend "${backendName}".`,
-          });
-        }
-        const available = yield* backend.available;
-        if (!available) {
-          return yield* new BackendUnavailableError({
-            message: `Backend "${backendName}" is not available on this machine (binary/SDK/credentials missing).`,
-          });
-        }
+      const origin = task.origin ?? "model";
+      const id =
+        origin === "btw" ? `btw-${++btwCounter}` : `sa-${++modelCounter}`;
+      const meta = yield* session.meta;
+      const entry: Entry = {
+        snapshot: {
+          id,
+          origin,
+          backend: backendName,
+          title: task.title,
+          prompt: task.prompt,
+          cwd: task.cwd,
+          status: "running",
+          createdAt: Date.now(),
+          meta,
+          usage: { contextWindow: meta.contextWindow },
+          transcript: [],
+          liveTools: [],
+          queued: [],
+          finalText: "",
+          turns: 0,
+        },
+        session,
+        scope,
+        liveToolMap: new Map(),
+      };
+      entries.set(id, entry);
 
-        const scope = yield* Scope.make();
-        const session = yield* Scope.provide(backend.spawn(task), scope).pipe(
-          Effect.onError(() => Scope.close(scope, Exit.void)),
-        );
-        if (disposed) {
-          yield* Scope.close(scope, Exit.void);
-          return yield* new SpawnError({
-            message: "Subagent manager shut down while spawning.",
-          });
-        }
-
-        const origin = task.origin ?? "model";
-        const id =
-          origin === "btw" ? `btw-${++btwCounter}` : `sa-${++modelCounter}`;
-        const meta = yield* session.meta;
-        const entry: Entry = {
-          snapshot: {
-            id,
-            origin,
-            backend: backendName,
-            title: task.title,
-            prompt: task.prompt,
-            cwd: task.cwd,
-            status: "running",
-            createdAt: Date.now(),
-            meta,
-            usage: { contextWindow: meta.contextWindow },
-            transcript: [],
-            liveTools: [],
-            queued: [],
-            finalText: "",
-            turns: 0,
-          },
-          session,
-          scope,
-          liveToolMap: new Map(),
-        };
-        entries.set(id, entry);
-
-        // Pump: fold the event stream into the snapshot. Tied to the entry
-        // scope, so closing the scope stops it. If the stream ends while the
-        // subagent still looks running, the backend died out from under us.
-        const pump = Stream.runForEach(session.events, (event) =>
-          Effect.sync(() => foldEvent(entry, event)),
-        ).pipe(
-          Effect.ensuring(
-            Effect.sync(() => {
-              if (entry.snapshot.status === "running") {
-                settle(entry, {
-                  _tag: "Failed",
-                  errorText: "Backend event stream ended unexpectedly",
-                });
-              }
-            }),
-          ),
-        );
-        entry.pump = yield* Scope.provide(Effect.forkScoped(pump), scope);
-
-        notify(id);
-        return entry.snapshot as SubagentSnapshot;
-      });
-
-      return yield* doSpawn.pipe(
+      // Pump: fold the event stream into the snapshot. Tied to the entry
+      // scope, so closing the scope stops it. If the stream ends while the
+      // subagent still looks running, the backend died out from under us.
+      const pump = Stream.runForEach(session.events, (event) =>
+        Effect.sync(() => foldEvent(entry, event)),
+      ).pipe(
         Effect.ensuring(
           Effect.sync(() => {
-            reserved--;
-            notify();
+            if (entry.snapshot.status === "running") {
+              settle(entry, {
+                _tag: "Failed",
+                errorText: "Backend event stream ended unexpectedly",
+              });
+            }
           }),
         ),
       );
+      entry.pump = yield* Scope.provide(Effect.forkScoped(pump), scope);
+
+      notify(id);
+      return entry.snapshot as SubagentSnapshot;
     });
 
   const waitFor = (
@@ -628,28 +584,6 @@ const makeManager = Effect.gen(function* () {
         return new SendError({
           message: `Subagent "${id}" is no longer tracked.`,
         });
-      }
-      // Restarting a settled subagent occupies a running slot again, so it
-      // must respect the same cap as spawn. Steering an already-running one
-      // does not consume additional capacity.
-      if (entry.snapshot.status !== "running") {
-        if (runningCount() + reserved >= MAX_RUNNING) {
-          return new SendError({
-            message: `Max ${MAX_RUNNING} subagents can run concurrently; restarting "${id}" would exceed that.`,
-          });
-        }
-        // Occupy the slot synchronously: the RunStarted that flips status
-        // arrives via the async pump, and two concurrent restarts must not
-        // both pass the check in that window. Cleared by RunStarted/settle,
-        // or here when the backend rejects the send.
-        entry.restarting = true;
-        return entry.session.send(text).pipe(
-          Effect.onError(() =>
-            Effect.sync(() => {
-              entry.restarting = false;
-            }),
-          ),
-        );
       }
       return entry.session.send(text);
     });

@@ -46,6 +46,8 @@ import {
   type WorkflowDetails,
 } from "./model.ts";
 
+import { sanitizeTerminalText } from "../shared/terminal-text.ts";
+
 const NOTICE_TTL_MS = 4000;
 const MIN_HEIGHT = 10;
 const TRANSCRIPT_SCROLL_STEP = 20;
@@ -926,12 +928,12 @@ export class WorkflowDashboard {
       const label = transcriptLabel(entry);
       const color = transcriptColor(entry);
       rows.push(
-        ` ${theme.fg(color, SQUARE)} ${theme.bold(theme.fg(color, label))}`,
+        ` ${theme.fg(color, SQUARE)} ${theme.bold(theme.fg(color, sanitizeTerminalText(label)))}`,
       );
       const contentWidth = Math.max(8, width - 4);
       const styled = theme.fg(
         entry.role === "thinking" ? "dim" : entry.isError ? "error" : "text",
-        entry.text,
+        sanitizeTerminalText(entry.text),
       );
       for (const line of wrapTextWithAnsi(styled, contentWidth)) {
         rows.push(`   ${line}`);

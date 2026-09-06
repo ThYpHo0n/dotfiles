@@ -42,16 +42,3 @@ Never invent a limit. A cap, threshold, quota, budget, timeout, retry or round c
 - derived from measured evidence necessary to meet or prove the task contract.
 
 State the authority or derivation whenever proposing or applying a limit. If no authority exists, omit the limit and use the MSW necessity test. Metrics may be reported as evidence, but they must not become gates, defaults, targets, or recommendations through agent intuition. Examples and representative proportions never become defaults. If a necessary limit is an unresolved owner choice, ask; do not manufacture a value.
-
-## TypeScript in this repo
-
-These are the conventions the extensions here are written to; they bind like any
-other project policy, and the necessity test above still decides what work
-happens at all.
-
-- Run the check, format, and lint commands once a change is complete. Where a
-  project has none, propose adding them.
-- Let inference do the work: write an explicit return type only where the
-  compiler genuinely needs one, and reach for an existing inferred type before
-  declaring a new one.
-- `as any` is the last resort. Reach for real type safety first.

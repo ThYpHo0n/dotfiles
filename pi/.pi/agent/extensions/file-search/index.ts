@@ -15,6 +15,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { sanitizeTerminalText } from "../shared/terminal-text.ts";
 import { Text } from "@earendil-works/pi-tui";
 import { Cause, Data, Effect, Exit } from "effect";
 import { Type } from "typebox";
@@ -364,7 +365,7 @@ function expandedPreview(
   let text = "";
   const content = result.content[0];
   if (content?.type === "text" && content.text) {
-    const lines = content.text.split("\n");
+    const lines = sanitizeTerminalText(content.text).split("\n");
     for (const line of lines.slice(0, PREVIEW_LINES)) {
       text += `\n${theme.fg("dim", line)}`;
     }
@@ -373,7 +374,7 @@ function expandedPreview(
     }
   }
   if (fullOutputPath) {
-    text += `\n${theme.fg("dim", `Full output: ${fullOutputPath}`)}`;
+    text += `\n${theme.fg("dim", `Full output: ${sanitizeTerminalText(fullOutputPath)}`)}`;
   }
   return text;
 }

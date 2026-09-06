@@ -24,7 +24,15 @@ import {
 } from "./src/binaries.ts";
 import { formatCapturedOutput, formatOutput } from "./src/output.ts";
 import { executeSearchProcess } from "./src/process.ts";
-import { installNotifications, makeBinaryInitializers } from "./index.ts";
+import fileSearch, {
+  installNotifications,
+  makeBinaryInitializers,
+} from "./index.ts";
+import type {
+  ExtensionAPI,
+  Theme,
+  ToolDefinition,
+} from "@earendil-works/pi-coding-agent";
 
 // --- argument construction -------------------------------------------------
 
@@ -441,3 +449,35 @@ it("output: oversized results are truncated and persisted", async () => {
   const shownLines = formatted.text.split("\n");
   assert.equal(shownLines[0], "file-0.ts");
 });
+
+for (const name of ["fd", "rg"]) {
+  it(`${name} expanded output removes terminal controls before styling`, () => {
+    const tools = new Map<string, ToolDefinition>();
+    fileSearch({
+      on() {},
+      registerTool(tool: ToolDefinition) {
+        tools.set(tool.name, tool);
+      },
+    } as unknown as ExtensionAPI);
+    const theme = { fg: (_color: string, text: string) => text } as Theme;
+    const output = tools.get(name)!.renderResult!(
+      {
+        content: [
+          {
+            type: "text",
+            text: "before\u001b]52;c;payload\u0007after\n\u001b[31mred\u001b[0m",
+          },
+        ],
+        details: { outputLines: 2, truncated: false },
+      },
+      { expanded: true, isPartial: false },
+      theme,
+      undefined!,
+    )
+      .render(120)
+      .join("\n");
+    assert.include(output, "beforeafter");
+    assert.include(output, "red");
+    assert.notMatch(output, /payload|[\u001b\u0007]/);
+  });
+}

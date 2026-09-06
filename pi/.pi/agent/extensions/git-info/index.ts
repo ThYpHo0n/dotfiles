@@ -45,9 +45,13 @@ function parsePullRequest(value: unknown) {
 
 function parsePullRequestJson(value: string) {
   try {
-    return parsePullRequest(JSON.parse(value));
+    const results: unknown = JSON.parse(value);
+    if (!Array.isArray(results)) return undefined;
+    return results.length === 0
+      ? null
+      : (parsePullRequest(results[0]) ?? undefined);
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -73,11 +77,20 @@ export default function gitInfo(pi: ExtensionAPI) {
     Effect.gen(function* () {
       const result = yield* run(
         "gh",
-        ["pr", "view", branch, "--json", "number,url,state,isDraft"],
+        [
+          "pr",
+          "list",
+          "--head",
+          branch,
+          "--state",
+          "open",
+          "--json",
+          "number,url,state,isDraft",
+        ],
         ctx,
         GH_TIMEOUT_MS,
       );
-      if (result.code !== 0) return null;
+      if (result.code !== 0) return undefined;
       return parsePullRequestJson(result.stdout);
     });
 
@@ -146,9 +159,13 @@ export default function gitInfo(pi: ExtensionAPI) {
         }
 
         if (forcePullRequest || branchChanged) {
-          queriedPrBranch = branchName;
           const pullRequest = yield* lookupPullRequest(ctx, branchName);
           if (refreshGeneration !== generation) return;
+          if (pullRequest === undefined) {
+            queriedPrBranch = null;
+            return;
+          }
+          queriedPrBranch = branchName;
           state = { ...state, pullRequest };
           publish();
         }

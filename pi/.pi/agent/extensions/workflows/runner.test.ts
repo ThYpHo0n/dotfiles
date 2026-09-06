@@ -180,7 +180,8 @@ test("in-flight aborted tool calls retain start timing without completion", () =
   );
 });
 
-test("first-response watchdog aborts a silent provider request", async () => {
+test("first-response watchdog aborts a silent provider request", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
   let aborted = false;
   const watchdog = createFirstResponseWatchdog(
     async () => {
@@ -189,10 +190,12 @@ test("first-response watchdog aborts a silent provider request", async () => {
     { timeoutMs: 10, model: "fixture-model" },
   );
 
-  await assert.rejects(
+  const rejected = assert.rejects(
     watchdog.waitFor(new Promise<never>(() => {})),
     /no assistant response event for fixture-model within 10 ms.*stalled/i,
   );
+  t.mock.timers.tick(10);
+  await rejected;
   assert.equal(aborted, true);
 });
 

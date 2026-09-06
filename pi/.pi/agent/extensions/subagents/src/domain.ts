@@ -242,12 +242,6 @@ export class BackendUnavailableError extends Data.TaggedError(
   readonly message: string;
 }> {}
 
-export class ConcurrencyLimitError extends Data.TaggedError(
-  "ConcurrencyLimitError",
-)<{
-  readonly message: string;
-}> {}
-
 export class SendError extends Data.TaggedError("SendError")<{
   readonly message: string;
 }> {}
