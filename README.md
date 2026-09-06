@@ -7,6 +7,7 @@ claude   shared Claude Code settings, hooks, and sound effects
 codex    shared Codex configuration and personal skills
 git      global git configuration
 ghostty  Ghostty terminal settings
+pi       shared Pi agent extensions, skills, and theme
 zsh      shared Zsh configuration, theme, and plugin list
 ```
 
@@ -97,13 +98,13 @@ cd ~/dotfiles
 For a Debian/Ubuntu server or homelab host:
 
 ```bash
-stow zsh git codex claude
+stow zsh git codex claude pi
 ```
 
 For a workstation with Ghostty installed:
 
 ```bash
-stow zsh git codex claude ghostty
+stow zsh git codex claude ghostty pi
 ```
 
 ### Enable the pre-push hook
@@ -148,6 +149,55 @@ Use the dotfiles-managed skills directory for personal portable skills. If a
 skill later needs plugin packaging, marketplace metadata, scripts, or broader
 distribution, split it into a Codex plugin at that point instead of storing it
 under dotfiles.
+
+## Pi
+
+Stowing `pi` links `~/.pi/agent` to [`pi/.pi/agent`](pi/.pi/agent). The extensions
+are adapted from [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi-setup):
+`github-dark-default` theme, a custom footer (`ui-customization` + `model-info` +
+`git-info`), background terminals, subagents, workflows, an ask-user tool, `fd`/`rg`
+search, summaries, and clipboard copy. Upstream revision: `73bf4d8`.
+
+Pi discovers extensions from `~/.pi/agent/extensions/` on startup, so nothing needs
+registering. Each extension carries its own dependencies, so install at the root
+**and** per extension:
+
+```bash
+cd ~/.pi/agent
+npm ci
+for e in extensions/*/; do
+  if [ -f "$e/package-lock.json" ]; then npm ci --prefix "$e" || break; fi
+done
+npm run check && npm run format:check && npm test
+```
+
+Use Node.js 22.19 or newer. `npm test` runs local tests; `npm run test:live`
+starts authenticated Claude/Codex sessions and can incur model usage charges.
+
+Runtime state stays untracked: credentials, sessions, model caches, the `fd`/`rg`
+binaries under `bin/`, and every `node_modules`. `skills/` is the same
+content-addressed symlink farm as Codex, so only the two skills shipping with the
+extensions are tracked.
+
+`settings.json` mixes the theme with per-machine runtime keys, so it is untracked.
+On a new machine:
+
+```bash
+cp ~/.pi/agent/settings.json.example ~/.pi/agent/settings.json
+```
+
+The example sets the theme and defaults to the local `mtplx` provider, whose
+definition lives in the untracked `models.json` (see below). Drop the
+`defaultProvider`/`defaultModel` keys on a machine without that server, or pass
+`--provider`/`--model` per run.
+
+`models.json` holds provider definitions and is untracked, because it mixes
+endpoints and credentials with machine-local availability. A local
+OpenAI-compatible server is configured there as:
+
+```json
+{ "providers": { "mtplx": { "baseUrl": "http://127.0.0.1:8000/v1", "api": "openai-completions" } } }
+```
 
 ## Claude Code Settings
 

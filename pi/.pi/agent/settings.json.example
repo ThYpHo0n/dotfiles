@@ -1,0 +1,5 @@
+{
+  "theme": "github-dark-default",
+  "defaultProvider": "mtplx",
+  "defaultModel": "mtplx-qwen38-27b-optimized-speed"
+}
