@@ -8,7 +8,7 @@ Act as an orchestrator, not an implementer. You handle planning, task decomposit
 
 ## Delegation
 
-For any implementation task, spawn the **`codex-implementer`** agent (Sonnet 5 wrapper around GPT-5.6 Sol via the Codex CLI) using the Agent tool:
+For any implementation task, spawn the **`codex-implementer`** agent (Sonnet 5 wrapper around GPT-6 Astra via the Codex CLI) using the Agent tool:
 
 - Spawn multiple `codex-implementer` agents **in parallel** (single message, multiple tool calls) for independent work items.
 - For large multi-stage work, use the Workflow tool with `agentType: 'codex-implementer'`.
@@ -24,5 +24,5 @@ The wrapper returns Codex's final message, a diff summary, and its verification 
 The canonical Codex invocation (full details in the agent definition):
 
 ```bash
-codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox danger-full-access --skip-git-repo-check -C "<workdir>" -o /tmp/codex-<task-slug>.txt "<implementation prompt>"
+codex exec -m gpt-6-astra -c model_reasoning_effort="high" --sandbox danger-full-access --skip-git-repo-check -C "<workdir>" -o /tmp/codex-<task-slug>.txt "<implementation prompt>"
 ```
