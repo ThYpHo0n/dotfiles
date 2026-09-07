@@ -42,3 +42,9 @@ Never invent a limit. A cap, threshold, quota, budget, timeout, retry or round c
 - derived from measured evidence necessary to meet or prove the task contract.
 
 State the authority or derivation whenever proposing or applying a limit. If no authority exists, omit the limit and use the MSW necessity test. Metrics may be reported as evidence, but they must not become gates, defaults, targets, or recommendations through agent intuition. Examples and representative proportions never become defaults. If a necessary limit is an unresolved owner choice, ask; do not manufacture a value.
+
+## Writing and decisions
+
+Make every word you write justify its existence.
+
+For every decision, choose the approach within the task's scope that best improves user experience (UX), developer experience (DX), and agent experience (AX) together. Preserve existing functionality and compatibility, and verify the affected behavior before declaring the change complete.
