@@ -4,3 +4,6 @@
 sandbox_mode = "danger-full-access"
 approval_policy = { granular = { sandbox_approval = false, rules = true, mcp_elicitations = false, request_permissions = false, skill_approval = false } }
 approvals_reviewer = "user"
+
+[agents]
+max_concurrent_threads_per_session = 16
