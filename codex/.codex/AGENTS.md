@@ -48,3 +48,19 @@ State the authority or derivation whenever proposing or applying a limit. If no 
 Make every word you write justify its existence.
 
 For every decision, choose the approach within the task's scope that best improves user experience (UX), developer experience (DX), and agent experience (AX) together. Preserve existing functionality and compatibility, and verify the affected behavior before declaring the change complete.
+
+## PR description readability
+
+Whenever creating or updating a pull request, explicitly read and apply
+`~/.codex/skills/i-have-adhd/SKILL.md` to the title and description, including
+its pre-send check, before publishing. This is a standing invocation for PR
+writing, even when the skill is not selected automatically or another PR
+workflow is used.
+
+Write for a human reviewer who has not seen the conversation: lead with the
+problem and resulting behavior, use plain language and short paragraphs, and
+keep implementation details only when they explain the change or its risk.
+Keep required template fields, relevant verification evidence, and unresolved
+risks visible. Use numbered steps only for actions the reviewer must perform.
+Apply the skill within this PR-writing scope; follow user and repository
+instructions when they override its defaults, including limits and approvals.
