@@ -10,7 +10,7 @@ codex/.codex/*
 !codex/.codex/hooks.json
 !codex/.codex/guarded-full-access.config.toml
 !codex/.codex/hooks/
-# skills/ is mostly content-addressed symlinks into ~/.local/share/hero-agent;
+# skills/ is mostly content-addressed symlinks into the skill manager's share dir;
 # only hand-written skills are tracked
 !codex/.codex/skills/
 codex/.codex/skills/*

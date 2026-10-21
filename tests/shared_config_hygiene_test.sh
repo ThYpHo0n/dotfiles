@@ -8,6 +8,9 @@ tmp_repo="$(mktemp -d)"
 cleanup() { rm -rf "$tmp_repo"; }
 trap cleanup EXIT
 
+# A private-terms list on the developer machine must not leak into fixtures.
+export DOTFILES_PRIVATE_TERMS=/dev/null
+
 cd "$tmp_repo"
 git init -q .
 git config user.email t@example.test
@@ -77,6 +80,19 @@ expect 0 "linuxbrew prefix is not treated as a home path"
 reset_fixture
 printf 'export TOOL_HOME=/Users/alice\n' >> zsh/.zshrc
 expect 1 "home path without a trailing slash is caught"
+
+# Setup-specific terms are only known to the machine, so the list lives
+# outside the repo; without a list the check is off.
+terms_file="$(mktemp)"
+printf '# comment\n\nacme\n' > "$terms_file"
+reset_fixture
+printf '# acme vpn helper\n' >> zsh/.zshrc
+DOTFILES_PRIVATE_TERMS="$tmp_repo/no-such-list" expect 0 "no private-terms list means no private-term check"
+DOTFILES_PRIVATE_TERMS="$terms_file" expect 1 "private term from the list is caught"
+reset_fixture
+printf 'source "$HOME/.zshrc.local"\n' >> zsh/.zshrc
+DOTFILES_PRIVATE_TERMS="$terms_file" expect 0 "clean config passes with a private-terms list present"
+rm -f "$terms_file"
 
 reset_fixture
 printf 'export PATH=/home/alice/bin:/home/linuxbrew/.linuxbrew/bin\n' >> zsh/.zshrc

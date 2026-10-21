@@ -15,7 +15,7 @@
 # never tracked. Copy settings.json.example on a new machine.
 
 # skills/ is the same content-addressed symlink farm as ~/.codex/skills: the
-# entries point into ~/.local/share/hero-agent and go stale on reinstall. Only
+# entries point into the skill manager's share dir and go stale on reinstall. Only
 # the two skills that ship with the extensions are tracked.
 !/skills/
 /skills/*

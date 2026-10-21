@@ -46,6 +46,16 @@ is_exempt() {
     esac
 }
 
+# Terms that mark one setup (an employer, a homelab) leaking into shared
+# config: a company name, an internal CLI, a private host. The list is itself
+# private, so it lives outside the repo: one extended regex per line, matched
+# case-insensitively; blank lines and # comments are skipped. No list, no check.
+private_terms_file="${DOTFILES_PRIVATE_TERMS:-${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/private-terms}"
+private_terms=""
+if [ -r "$private_terms_file" ]; then
+    private_terms="$(grep -vE '^[[:space:]]*(#|$)' "$private_terms_file" | paste -sd '|' -)"
+fi
+
 findings=0
 report() {
     printf '%s:%s: %s\n' "$1" "$2" "$3"
@@ -74,6 +84,13 @@ scan_file() {
             "installer-managed block — move it to a .local override"
     done < <(printf '%s\n' "$content" \
         | grep -nE '^(### MANAGED BY |# >>> .* >>>|# Added by |# <<< .* <<<)' || true)
+
+    if [ -n "$private_terms" ]; then
+        while IFS=: read -r line _; do
+            [ -n "${line:-}" ] && report "$file" "$line" \
+                "private term — belongs in an untracked overlay (README: Work vs private setups)"
+        done < <(printf '%s\n' "$content" | grep -niE "$private_terms" || true)
+    fi
 
     # Identity is per-machine and per-persona; git/.gitconfig already includes
     # ~/.gitconfig.local for it. Git reads sections and keys case-insensitively.
