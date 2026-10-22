@@ -122,6 +122,12 @@ scans the commits being pushed and reports findings as `file:line`; the
 [`config-hygiene`](codex/.codex/skills/config-hygiene/SKILL.md) skill moves them
 into the `.local` overrides.
 
+The same check can watch for words that belong to one setup only (an employer
+name, an internal CLI, a private host). List them as extended regexes, one per
+line, in `~/.config/dotfiles/private-terms`; the file is private and stays
+outside the repo, and without it the check is off. Run
+`bin/check-shared-config-hygiene.sh` by hand to scan the working tree.
+
 ## Codex Skills
 
 The tracked Codex package lives at [`codex/.codex/skills`](codex/.codex/skills).
@@ -221,6 +227,38 @@ effects) can coexist in the same directory without touching the dotfiles repo.
 The shared settings assume `node` is on `PATH` (for the HUD status line).
 Sound effect hooks and audio files are not tracked and should be configured
 per-machine in `settings.local.json`.
+
+### Tracked hooks
+
+`settings.json` registers these scripts from `claude/.claude/hooks/`:
+
+| Event | Script | What it does |
+| --- | --- | --- |
+| `PreToolUse` on `gh pr create` | `check-issue-ref.sh` | Lists open issues the branch name points at so the PR body can close them |
+| `PostToolUse` on `gh pr create` | `pr-created.sh` | Reads the PR back from GitHub (title, body, linked issues) and injects the definition-of-done checklist |
+| `Stop` | `pr-not-done.sh` | If this session pushed or opened a PR that has failing checks, unresolved review threads or conflicts, blocks the stop once with the list; repeats only when the PR state changes |
+| `SessionStart` | `session-facts.sh` | Reports an open PR on the current branch, read-only `.github`/`.claude` directories and a missing git identity, then appends whatever the probes in `~/.claude/session-facts.d/` print |
+
+Command filters use the `if` field (`"Bash(gh pr create*)"`); a matcher such
+as `Bash(gh pr create*)` is treated as a regex against the tool name and never
+fires. The standing instructions the hooks enforce live in
+[`claude/.claude/CLAUDE.md`](claude/.claude/CLAUDE.md).
+
+### Work vs private setups
+
+This repo is public and serves work, private and homelab machines alike, so
+the tracked Claude config is generic: it names no employer, no internal tool
+and no harness. Everything tied to one setup lives in untracked files that
+the stowed `.gitignore` already leaves out of the repo:
+
+| Overlay | Location | Loaded by |
+| --- | --- | --- |
+| Standing instructions for one setup | `~/.claude/rules/<setup>.md` | Claude Code loads user-level rules from `~/.claude/rules/` on every project |
+| Session-start probes (credential state, internal tools) | `~/.claude/session-facts.d/<name>` (executable) | `session-facts.sh` runs each one and adds its output lines |
+| Words that must never appear in tracked files | `~/.config/dotfiles/private-terms` | `bin/check-shared-config-hygiene.sh` and the pre-push hook |
+
+Keep the overlays in a private repo or in your employer's tooling; this repo
+only documents the slots.
 
 ### Claude machine-specific overrides
 
