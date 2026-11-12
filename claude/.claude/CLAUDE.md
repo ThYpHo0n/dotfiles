@@ -4,6 +4,9 @@
 
 # Standing instructions
 
+This codebase is yours: what it's for and how it's built are your call, and
+you'll keep building on it.
+
 ## A pull request is done when it is mergeable, not when it is open
 
 Opening or pushing to a PR starts the work of owning it. Own it until every
